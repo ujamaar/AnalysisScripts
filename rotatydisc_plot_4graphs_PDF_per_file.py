@@ -14,6 +14,8 @@ import re
 directory_path ='C:/cygwin/home/axel/RotaryDisc_CABA/Recordings/test'
 #directory_path ='C:/cygwin/home/axel/RotaryDisc_CABA/Recordings/nwp68/nwp68_2014_11_11'
 #directory_path ='C:/cygwin/home/axel/RotaryDisc_CABA/Recordings/nwp68/nwp68_2014_11_05'
+
+#directory path format for mac computers:
 #\\losonczy-server\walter\Virtual_Odor\behavior_data\wfnjC3\wfnjC3_2014_10_06
 
 def generate_graph(filename):
