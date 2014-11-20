@@ -11,9 +11,8 @@ from pylab import *
 from matplotlib.backends.backend_pdf import PdfPages
 import re
 
-directory_path ='C:/cygwin/home/axel/RotaryDisc_CABA/Recordings/test'
-#directory_path ='C:/cygwin/home/axel/RotaryDisc_CABA/Recordings/nwp68/nwp68_2014_11_11'
-#directory_path ='C:/cygwin/home/axel/RotaryDisc_CABA/Recordings/nwp68/nwp68_2014_11_05'
+#directory_path ='C:/Users/axel/Desktop/Recordings/wfnjC8/wfnjC8_2014_11_14'
+directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 #directory path format for mac computers:
 #\\losonczy-server\walter\Virtual_Odor\behavior_data\wfnjC3\wfnjC3_2014_10_06
@@ -220,14 +219,7 @@ def generate_graph(filename):
         #plt.annotate()
         plt.close()
 
-    if len(figs) > 0:
-        #print 'Hello'
-#        if directory_path:
-#            if not os.path.isdir(directory_path):
-#                os.makedirs(directory_path)
-#
-#        pp = PdfPages(os.path.join(directory_path, pdf_name))
-    
+    if len(figs) > 0: 
         pdf_name = filename + '.pdf'
         pp = PdfPages(pdf_name)
     
@@ -239,11 +231,21 @@ def generate_graph(filename):
 #                       papertype='letter')
         pp.close()    
 
+#to make sure that the files are processed in the proper order (not really important here, but just in case)
+def natural_key(string_):
+    """See http://www.codinghorror.com/blog/archives/001018.html"""
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
+
 file_names = [os.path.join(directory_path, f)
     for dirpath, dirnames, files in os.walk(directory_path)
     for f in files if f.endswith('.csv')]
+file_names.sort(key=natural_key)
 
 #now generate a pdf file for each .csv file
 for filez in file_names:
         print filez
-        generate_graph(filez)
+        #check whether there is already a pdf
+        if os.path.isfile(filez + '.pdf'):
+            print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
+        else:
+            generate_graph(filez)
