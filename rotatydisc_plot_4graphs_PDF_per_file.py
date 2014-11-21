@@ -5,6 +5,7 @@ Created on Wed Jul 30 18:52:38 2014
 @author: njoshi
 """
 #something for inspiration: http://matplotlib.org/examples/pylab_examples/multiple_yaxis_with_spines.html
+#more inspiration: https://datasciencelab.wordpress.com/2013/12/21/beautiful-plots-with-pandas-and-matplotlib/
 
 import os
 from pylab import *
@@ -12,10 +13,11 @@ from matplotlib.backends.backend_pdf import PdfPages
 import re
 
 #directory_path ='C:/Users/axel/Desktop/Recordings/wfnjC8/wfnjC8_2014_11_14'
-directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
+#directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 #directory path format for mac computers:
-#\\losonczy-server\walter\Virtual_Odor\behavior_data\wfnjC3\wfnjC3_2014_10_06
+directory_path ='/Users/njoshi/Documents/nwp_test_data'
+#directory_path ='\\losonczy-server\walter\Virtual_Odor\behavior_data\wfnjC3\wfnjC8'
 
 def generate_graph(filename):
     
@@ -190,7 +192,7 @@ def generate_graph(filename):
         
         ax4 = subplot(414, sharex=ax1)
         ax4.plot(x4,y4,'r-', linewidth = 0.01)
-        ax4.vlines(x5,0,y5, color = 'b', linewidth = 0.01)
+        ax4.vlines(x5,0,y5, color = 'b', linewidth = 0.1)
         ax4.set_ylabel('Odor', fontsize='xx-small')
         ax4.set_xlabel('Distance along the virtual track(mm)', fontsize='xx-small')
         xlim(0,max(distance));
