@@ -12,11 +12,11 @@ from pylab import *
 from matplotlib.backends.backend_pdf import PdfPages
 import re
 
-#directory_path ='C:/Users/axel/Desktop/Recordings/wfnjC8/wfnjC8_2014_11_14'
+directory_path ='C:/Users/axel/Desktop/test_data'
 #directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 #directory path format for mac computers:
-directory_path ='/Users/njoshi/Documents/nwp_test_data'
+#directory_path ='/Users/njoshi/Documents/nwp_test_data'
 #directory_path ='\\losonczy-server\walter\Virtual_Odor\behavior_data\wfnjC3\wfnjC8'
 
 def generate_graph(filename):
@@ -219,17 +219,13 @@ def generate_graph(filename):
         #plt.annotate()
         plt.close()
 
-    if len(figs) > 0: 
-        pdf_name = filename + '.pdf'
-        pp = PdfPages(pdf_name)
-    
-        for fig in figs:
-            pp.savefig(fig)#, dpi=1000, 
-#                       facecolor='w',
-#                       edgecolor='w', 
-#                       orientation='portrait',
-#                       papertype='letter')
-        pp.close()    
+    if len(figs) > 0:
+		pdf_name = filename + '.pdf'
+		pp = PdfPages(pdf_name)
+		
+		for fig in figs:
+			pp.savefig(fig)
+		pp.close()    
 
 #to make sure that the files are processed in the proper order (not really important here, but just in case)
 def natural_key(string_):
