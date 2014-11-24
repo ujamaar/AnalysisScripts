@@ -180,14 +180,12 @@ def generate_graph(filename):
 
         ax2 = subplot(412, sharex=ax1)
         ax2.vlines(x2,0,y2, color='r', linewidth = 0.01)
-        ax2.set_ylabel('Rewards', fontsize='xx-small')
-        #xlim(0,max(distance));        
+        ax2.set_ylabel('Rewards', fontsize='xx-small')        
         
         ax3 = subplot(413, sharex=ax1)
         ax3.vlines(x3,0,y3,color = 'g', linewidth = 0.01)
         ax3.vlines(x6,0,y6, color ='r', linewidth = 0.01)
         ax3.set_ylabel('Licks', fontsize='xx-small')
-        #xlim(0,max(distance));
         ylim(0,1)
         
         ax4 = subplot(414, sharex=ax1)
@@ -196,7 +194,7 @@ def generate_graph(filename):
         ax4.set_ylabel('Odor', fontsize='xx-small')
         ax4.set_xlabel('Distance along the virtual track(mm)', fontsize='xx-small')
         xlim(0,max(distance));
-        ylim(0,4);
+        ylim(0,6);
   
         for item in ([ax1.title, ax1.xaxis.label, ax1.yaxis.label] + ax1.get_xticklabels() + ax1.get_yticklabels()):
             item.set_fontsize(5)
