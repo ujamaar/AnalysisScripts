@@ -12,12 +12,14 @@ from pylab import *
 from matplotlib.backends.backend_pdf import PdfPages
 import re
 
-directory_path ='C:/Users/axel/Desktop/test_data'
+#directory_path ='C:/Users/axel/Desktop/test_data'
 #directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 #directory path format for mac computers:
-#directory_path ='/Users/njoshi/Documents/nwp_test_data'
-#directory_path ='\\losonczy-server\walter\Virtual_Odor\behavior_data\wfnjC3\wfnjC8'
+directory_path ='/Users/njoshi/Documents/nwp_test_data'
+#directory_path ='/Volumes/walter/Virtual_Odor/behavior_data/wfnjC8'
+
+track_length = 4500
 
 def generate_graph(filename):
     
@@ -142,10 +144,10 @@ def generate_graph(filename):
 
             if lap_initial_drop[row] == 1:
                 x5.append(lap_distance[row])
-                y5.append(lap_initial_drop[row] * 5) 
+                y5.append(lap_initial_drop[row] * 6) 
 
 
-        for row in range(1,len(lap_distance)):        
+        for row in range(1,len(lap_distance)-1):        
             if lap_valves[row] != lap_valves[row - 1]:
                 x4.append(lap_distance[row - 1])
                 y4.append(lap_valves[row - 1])  
@@ -163,6 +165,11 @@ def generate_graph(filename):
         x4.append(lap_distance[len(lap_distance)-1])
         y4.append(0)
         
+        x6.append(lap_distance[len(lap_distance)-1])
+        y6.append(lap_reward_availability[len(lap_distance)-1])        
+        x6.append(lap_distance[len(lap_distance)-1])
+        y6.append(0) 
+        
 #now plotting the data in a figure (with 4 subplots in this case):
         
         fig = figure()
@@ -175,8 +182,8 @@ def generate_graph(filename):
         ax1.vlines(x6,0,y6, color ='r', linewidth = 0.01)
         ax1.set_ylabel('Speed(m/s)', fontsize='xx-small')
         #ax1.set_title(filename, fontsize=10)
-        xlim(0,max(distance)); 
-        ylim(0,0.8);      
+        xlim(0,track_length) 
+        ylim(0,0.8)     
 
         ax2 = subplot(412, sharex=ax1)
         ax2.vlines(x2,0,y2, color='r', linewidth = 0.01)
@@ -193,8 +200,8 @@ def generate_graph(filename):
         ax4.vlines(x5,0,y5, color = 'b', linewidth = 0.1)
         ax4.set_ylabel('Odor', fontsize='xx-small')
         ax4.set_xlabel('Distance along the virtual track(mm)', fontsize='xx-small')
-        xlim(0,max(distance));
-        ylim(0,6);
+        xlim(0,track_length)
+        ylim(0,6)
   
         for item in ([ax1.title, ax1.xaxis.label, ax1.yaxis.label] + ax1.get_xticklabels() + ax1.get_yticklabels()):
             item.set_fontsize(5)
