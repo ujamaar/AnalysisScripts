@@ -95,13 +95,13 @@ def combine_files(file1,file2, output_filename):
         if(len(datalist2[row]) == 17):
             environment.append(environment[len(datalist1)-1] + int(datalist2[row][16]))
         else:
-            environment.append(0)
+            environment.append(2)
         
         
         if(datalist2[row][12] > 0):
             ttl_pulse.append(ttl_total_count[len(datalist1)-1] + datalist2[row][12])
         else:
-            ttl_pulse.append(2)
+            ttl_pulse.append(0)
 
     ##now just save all the lists together in a .csv file
     

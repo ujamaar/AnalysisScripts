@@ -16,8 +16,8 @@ import re
 #directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 #directory path format for mac computers:
-directory_path ='/Users/njoshi/Documents/nwp_test_data'
-#directory_path ='/Volumes/walter/Virtual_Odor/behavior_data/wfnjC8'
+#directory_path ='/Users/njoshi/Documents/nwp_test_data'
+directory_path ='/Volumes/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 track_length = 4500
 
