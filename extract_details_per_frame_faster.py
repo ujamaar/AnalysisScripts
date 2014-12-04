@@ -28,15 +28,16 @@ def extract_details_per_frame (complete_file):
     i = -1
     
     for row in range(0, len(input_array)):
+        #save data only if there's a new frame in the current data reading
         if(input_array[row][12] > 0):
             i = i + 1
-            output_array[i][0] = input_array[row][0]
-            output_array[i][1] = input_array[row][1]
-            output_array[i][2] = input_array[row][3]
-            output_array[i][3] = input_array[row][5]
-            output_array[i][4] = input_array[row][6]
-            output_array[i][5] = input_array[row][12]
-            output_array[i][6] = input_array[row][15]
+            output_array[i][0] = input_array[row][12]   #frame count
+            output_array[i][1] = input_array[row][0]    #time
+            output_array[i][2] = input_array[row][1]    #odor
+            output_array[i][3] = input_array[row][3]    #lick count
+            output_array[i][4] = input_array[row][5]    #reward count
+            output_array[i][5] = input_array[row][6]    #distance
+            output_array[i][6] = input_array[row][15]   #lap count
        
             # alternative method, but allegedly less efficient: output_array = numpy.vstack([output_array,new_row])
     
