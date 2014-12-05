@@ -42,7 +42,7 @@ def extract_details_per_frame (complete_file):
             # alternative method, but allegedly less efficient: output_array = numpy.vstack([output_array,new_row])
     
     #now save the array as a csv file in the same location as the input file
-    numpy.savetxt(complete_file + '_test_extraction.csv', output_array, fmt='%i', delimiter=',', newline='\n')
+    numpy.savetxt(complete_file + '_per_frame.csv', output_array, fmt='%i', delimiter=',', newline='\n')
 
 
 #to make sure that the files are processed in the proper order (not really important here, but just in case)
@@ -60,6 +60,6 @@ for filez in file_names:
     print filez
     #check whether there is already a pdf
     if os.path.isfile(filez + '_per_frame.csv'):
-        print 'An per_frame file already exists for this file. Delete the old per_frame file to generate a new one.'
+        print 'A per_frame file already exists for this file. Delete the old per_frame file to generate a new one.'
     else:
         extract_details_per_frame(filez)

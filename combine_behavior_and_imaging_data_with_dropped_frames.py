@@ -7,41 +7,46 @@ import re
 #this script is for extracting columns of interest and saving them to a new file
 #some inspiration: http://stackoverflow.com/questions/18458734/python-plot-list-of-tuples
 
-#directory_path ='C:/Users/axel/Desktop/test_data'
-#directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
-
-#directory path format for mac computers:
+#for PC: directory_path ='C:/Users/axel/Desktop/test_data'
 directory_path ='/Users/njoshi/Desktop/test_data'
-#directory_path ='/Volumes/walter/Virtual_Odor/behavior_data/wfnjC8'
 
-def extract_details_per_frame (behavior,images):
+def extract_details_per_frame (behavior,images,dropped_frames):
     
-#    behavior_data_raw_file = [pylab.loadtxt(behavior, delimiter=',')]
-#    behavior_data = behavior_data_raw_file[0]
-#    print behavior_data.shape
-#    
-#    imaging_data_raw_file = [pylab.loadtxt(images, delimiter=',')]
-#    imaging_data = imaging_data_raw_file[0]
-
     behavior_data = numpy.loadtxt(behavior, dtype='int', comments='#', delimiter=',')
     print "Behavior array size is: "
     print behavior_data.shape
     
-    imaging_data = numpy.loadtxt(images, dtype='float', comments='float', delimiter=',')
+    imaging_data = numpy.loadtxt(images, dtype='float', comments='#', delimiter=',')
     print "Imaging array size is: "
     print imaging_data.shape
+
+    missing_frames = numpy.loadtxt(dropped_frames, dtype='int', comments='#', delimiter=',')
+    print "Missing frame array size is: "
+    print missing_frames.size
 
     
     output_file = numpy.empty((behavior_data.shape[0],behavior_data.shape[1]+imaging_data.shape[1]))    
     print "Output array size is: "
     print output_file.shape
     
+    adjust_for_missing_frames = 0
+    
     for row in range(0, behavior_data.shape[0]):
-        for column in range(0,output_file.shape[1]):
-            if (column < behavior_data.shape[1]):
-                output_file[row][column] = behavior_data[row][column]
-            else:
-                output_file[row][column] = imaging_data[row][column-behavior_data.shape[1]]
+        #check if the row is missing from the imaging data:
+        if(row + 1 in missing_frames):
+            adjust_for_missing_frames = adjust_for_missing_frames + 1
+            for column in range(0,output_file.shape[1]):
+                if (column < behavior_data.shape[1]):
+                    output_file[row][column] = behavior_data[row][column]
+                else:
+                    output_file[row][column] = numpy.nan
+        #business is as usual if frames are not missing:
+        else:
+            for column in range(0,output_file.shape[1]):
+                if (column < behavior_data.shape[1]):
+                    output_file[row][column] = behavior_data[row][column]
+                else:
+                    output_file[row][column] = imaging_data[row - adjust_for_missing_frames][column-behavior_data.shape[1]]
        
     
     #now save the array as a csv file in the same location as the input file
@@ -71,4 +76,4 @@ file_names = [os.path.join(directory_path, f)
     for f in files if f.endswith('.csv')]
 file_names.sort(key=natural_key)
 
-extract_details_per_frame(file_names[0],file_names[1])
+extract_details_per_frame(file_names[0],file_names[1],file_names[2])
