@@ -6,7 +6,7 @@ import re
 
 #this script is for combining behavior and imaging data
 #the column labels are:
-#Frames,Time,Odor,Licks,Rewards,Distance,Laps,(traces of many many cells), (events of those cells)
+#Frames,Time,Odor,Licks,Rewards,Distance,Laps,ImagingTimeInSeconds,(traces of many many cells), (events of those cells)
 
 
 #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
@@ -55,12 +55,12 @@ def extract_details_per_frame (behavior,images,dropped_frames):
                     output_file[row][column] = imaging_data[row - adjust_for_missing_frames][column-behavior_data.shape[1]]
            
     #now save the array as a csv file in the same location as the input file
-    numpy.savetxt(directory_path + '/combined_behavior_and_imaging.csv', output_file, fmt='%.5f', delimiter=',', newline='\n')
+    numpy.savetxt(directory_path + '/behavior_and_imaging_combined.csv', output_file, fmt='%.5f', delimiter=',', newline='\n')
     
-    #generate a sample plot of distance vs events for cell in column#308
+    #generate a sample plot of distance vs events for cell in a selected column (such as output_file.shape[1]*2/3 )
     print "now plotting a sample graph:"
     x = output_file[:,5]
-    y = output_file[:,308]
+    y = output_file[:,output_file.shape[1]*3/4]
     
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -83,11 +83,11 @@ file_names.sort(key=natural_key)
 
 # if there are missing frames, run this statement
 if (len(file_names) == 3):
-    print "There are some missing frames in this imaging dataset"
+    print "Looks like there are some missing frames in this imaging dataset"
     extract_details_per_frame(file_names[0],file_names[1],file_names[2])
 #if there are no missing frames
 elif(len(file_names) == 2):
-    print "There were no missing frames"
+    print "There are no missing frames in this dataset."
     extract_details_per_frame(file_names[0],file_names[1],0)
 else:
     print "Please make sure that there are an appropriate number of files for combining"
