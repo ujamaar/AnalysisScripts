@@ -55,7 +55,7 @@ def extract_details_per_frame (behavior,images,dropped_frames):
                     output_file[row][column] = imaging_data[row - adjust_for_missing_frames][column-behavior_data.shape[1]]
            
     #now save the array as a csv file in the same location as the input file
-    numpy.savetxt(directory_path + '/behavior_and_imaging_combined.csv', output_file, fmt='%.5f', delimiter=',', newline='\n')
+    numpy.savetxt(directory_path + '/behavior_and_imaging_combined.csv', output_file, fmt='%.2f', delimiter=',', newline='\n')
     
     #generate a sample plot of distance vs events for cell in a selected column (such as output_file.shape[1]*2/3 )
     print "now plotting a sample graph:"
