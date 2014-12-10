@@ -10,7 +10,7 @@ import re
 
 
 #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
-directory_path ='/Users/njoshi/Desktop/test_data_no_dropped_frames'
+directory_path ='/Users/njoshi/Desktop/test_data'
 
 def extract_details_per_frame (behavior,images,dropped_frames):
     
