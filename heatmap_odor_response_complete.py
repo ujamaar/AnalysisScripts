@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 
-event_data = np.loadtxt('/Users/njoshi/Desktop/test_data/behavior_and_imaging_combined.csv', dtype='float', delimiter=',')
+file_path = '/Users/njoshi/Desktop/events_test/wfnjC8_2014-11-20-combined_behavior_and_imaging.csv'
+
+event_data = np.loadtxt(file_path, dtype='float', delimiter=',')
 #event_data = event_data[0:22,0:5]
 #to plot time as x-axis, transpose the whole array
 event_data = event_data.transpose()
@@ -11,9 +13,11 @@ print "Events array size is: (%d ,%d)" %(event_data.shape[0], event_data.shape[1
 
 odor = event_data[2,:]
 lap_count = event_data[6,:]
-#environment = event_data[7,:]
 total_laps = max(lap_count) + 1
-print 'There are %d laps in this trial' %total_laps
+environment = event_data[7,:]
+number_of_environments = int(max(environment))
+print 'There are %d laps in this recording' %total_laps
+print 'There are %d environments in this recording' %number_of_environments
 #print odor[0:15]
 
 
@@ -72,77 +76,114 @@ for row in range(0,event_data.shape[0]):
                 
 ###############################################################################
 # now calculate the proportion of laps for each odor that had an event #
+# also account for different environments #
 ###############################################################################
 
-event_data_averaged_over_laps = np.empty((event_data.shape[0],number_of_odors))
+environment_transitions = [0.0]
 
-for row in range(0,event_data_averaged_over_laps.shape[0]):
-    for column in range(0,event_data_averaged_over_laps.shape[1]):
-        laps_with_events = 0.00
-        total_lap_count = int(total_laps)
-        for lap in range (0,total_lap_count-1):
-            if(event_data_for_plotting[row][lap*number_of_odors + column] > 0.00):
-                laps_with_events = laps_with_events + 1.00
-        event_data_averaged_over_laps[row][column] = (laps_with_events / total_lap_count)*100.00
+for column in range(1,len(environment)):
+    if(environment[column] > environment[column-1]):
+        environment_transitions.append(lap_count[column])
+
+environment_transitions.append(lap_count[len(environment)-1])
+print environment_transitions
+
+
+#this is to print the correct odor sequence on the x-axis
+odor_sequence =np.zeros(number_of_environments*number_of_odors)
+
+for env in range(0,number_of_environments):
+    current_odor_position = 0
+    for column in range(1,len(odor)):
+        if(lap_count[column] == environment_transitions[env]):
+            if(odor[column] > odor[column-1]):
+                odor_sequence[env*number_of_odors+current_odor_position] = int(odor[column])
+                current_odor_position = current_odor_position+1
+print odor_sequence
+
+
+event_data_averaged_per_environment = np.empty((event_data.shape[0],number_of_odors*number_of_environments))
+
+for env in range(0,number_of_environments):
+    environment_start_lap = int(environment_transitions[env])
+    environment_end_lap = int(environment_transitions[env+1])
+    environment_lap_count = environment_end_lap - environment_start_lap
+    for row in range(0,event_data_averaged_per_environment.shape[0]):
+        for column in range(env*number_of_odors,(env+1)*number_of_odors):
+            laps_with_events = 0.00
+            for lap in range (environment_start_lap,environment_end_lap):
+                if(event_data_for_plotting[row][lap*number_of_odors + column%number_of_odors] > 0.00):
+                    laps_with_events = laps_with_events + 1.00
+            event_data_averaged_per_environment[row][column] = (laps_with_events / environment_lap_count)*100.00
 
 print 'Sample of summed event values'     
-print event_data_averaged_over_laps[0:10,0:10]
+print event_data_averaged_per_environment[0,:]
 
 ###############################################################################
 ###################### now we plot some good nice heatmaps ####################
 ###############################################################################
 
-def generate_plots(data_array):
+def generate_plots(complete_data_array):
 
     figs = []
+    
+    for env in range(0,number_of_environments):
+        data_array = complete_data_array[:,env*number_of_odors:(env+1)*number_of_odors]
+        fig = plt.figure()
+        fig.set_rasterized(True)
+        fig.suptitle('Plot of %d sorted cells in env %d '%(total_number_of_cells,(env+1)))
+        #fig.set_size_inches(10,2) 
+        ax1 = plt.subplot2grid((3,4), (0,0), rowspan=3)
+        ax2 = plt.subplot2grid((3,4), (0,1), rowspan=3, sharex=ax1, sharey=ax1)
+        ax3 = plt.subplot2grid((3,4), (0,2), rowspan=3, sharex=ax1, sharey=ax1)
+        ax4 = plt.subplot2grid((3,4), (0,3), rowspan=3, sharex=ax1, sharey=ax1)
         
-    fig = plt.figure()
-    fig.suptitle('Plot of %d sorted cells'%total_number_of_cells, fontsize=12)
-    #fig.set_size_inches(10,2) 
-    ax1 = plt.subplot2grid((3,4), (0,0), rowspan=3)
-    ax2 = plt.subplot2grid((3,4), (0,1), rowspan=3, sharex=ax1, sharey=ax1)
-    ax3 = plt.subplot2grid((3,4), (0,2), rowspan=3, sharex=ax1, sharey=ax1)
-    ax4 = plt.subplot2grid((3,4), (0,3), rowspan=3, sharex=ax1, sharey=ax1)
+        #sort the cells according to their response to an odor     
+        plot_data1 = data_array[np.argsort(data_array[:,0],kind='quicksort')]
+        plot_data2 = data_array[np.argsort(data_array[:,1],kind='quicksort')]
+        plot_data3 = data_array[np.argsort(data_array[:,2],kind='quicksort')]
+        plot_data4 = data_array[np.argsort(data_array[:,3],kind='quicksort')]
+        
+        #now make the actual plot using pcolor
+        #some color schemes: http://wiki.scipy.org/Cookbook/Matplotlib/Show_colormaps
+        #Blues,YlOrRd
+        heatmap1 = ax1.pcolor(plot_data1, cmap=plt.cm.Blues) 
+        heatmap2 = ax2.pcolor(plot_data2, cmap=plt.cm.Blues)
+        heatmap3 = ax3.pcolor(plot_data3, cmap=plt.cm.Blues)
+        heatmap4 = ax4.pcolor(plot_data4, cmap=plt.cm.Blues) 
+        
+        color_legend1 = plt.colorbar(heatmap1)
+    #    color_legend2 = plt.colorbar(heatmap2)
+    #    color_legend3 = plt.colorbar(heatmap3)
+    #    color_legend4 = plt.colorbar(heatmap4)
+        #the x and y axis labels of ax1 are shared by all other subplots
+        ax1.xaxis.tick_bottom()
+        ax1.set_xlabel('Odor')
+        ax1.set_ylabel('Cell#')
+        od = odor_sequence[env*number_of_odors:env*number_of_odors+4]
+        row_labels = list(' %d %d %d %d' %(od[0],od[1],od[2],od[3]))
+        ax1.set_xticklabels(row_labels, minor=False)
     
-    #sort the cells according to their response to an odor     
-    plot_data1 = data_array[np.argsort(data_array[:,0],kind='quicksort')]
-    plot_data2 = data_array[np.argsort(data_array[:,1],kind='quicksort')]
-    plot_data3 = data_array[np.argsort(data_array[:,2],kind='quicksort')]
-    plot_data4 = data_array[np.argsort(data_array[:,3],kind='quicksort')]
-    
-    #now make the actual plot using pcolor
-    ax1.pcolor(plot_data1, cmap=plt.cm.Blues)
-    ax2.pcolor(plot_data2, cmap=plt.cm.Reds)
-    ax3.pcolor(plot_data3, cmap=plt.cm.Greens)
-    ax4.pcolor(plot_data4, cmap=plt.cm.Reds) 
-    
-    #the x and y axis labels of ax1 are shared by all other subplots
-    ax1.xaxis.tick_bottom()
-    ax1.set_xlabel('Odor')
-    ax1.set_ylabel('Cell#')
-    row_labels = list(' 1 2 3 4')
-    ax1.set_xticklabels(row_labels, minor=False)
+        plt.ylim (0,total_number_of_cells)
+        
+        #suppress the y labels of all subplots except ax1
+        yticklabels = ax2.get_yticklabels()+ax3.get_yticklabels()+ax4.get_yticklabels()  
+        plt.setp(yticklabels, visible=False)
+        
+        #can be commented out to stop showing all plots in the console
+        plt.show()
 
-    plt.ylim (0,total_number_of_cells)
-    
-    #suppress the y labels of all subplots except ax1
-    yticklabels = ax2.get_yticklabels()+ax3.get_yticklabels()+ax4.get_yticklabels()  
-    plt.setp(yticklabels, visible=False)
-    
-    #can be commented out to stop showing all plots in the console
-    plt.show()
-    
-    figs.append(fig)
-    plt.close()
+        figs.append(fig)
+        plt.close()
         
     if len(figs) > 0:
-        pdf_name = '/Users/njoshi/Desktop/test_data/test_plot.pdf'
+        pdf_name = file_path.replace(".csv", ".pdf")
         pp = PdfPages(pdf_name)
         for fig in figs:
-            pp.savefig(fig)
+            pp.savefig(fig,dpi=300)
         pp.close() 
 
 ###############################################################################
 ###################### just a final touch here ################################
 ###############################################################################
-generate_plots(event_data_averaged_over_laps)
+generate_plots(event_data_averaged_per_environment)

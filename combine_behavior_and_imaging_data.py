@@ -11,7 +11,7 @@ import re
 #directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 #directory path format for mac computers:
-directory_path ='/Users/njoshi/Desktop/test_data'
+directory_path ='/Users/njoshi/Desktop/events_test'
 #directory_path ='/Volumes/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 def extract_details_per_frame (behavior,images):
@@ -45,7 +45,7 @@ def extract_details_per_frame (behavior,images):
        
     
     #now save the array as a csv file in the same location as the input file
-    numpy.savetxt(behavior + '_combined_behavior_and_imaging.csv', output_file, fmt='%.5f', delimiter=',', newline='\n')
+    numpy.savetxt(behavior.replace('.csv','_combined_behavior_and_imaging.csv'), output_file, fmt='%.5f', delimiter=',', newline='\n')
     
     #generate a sample plot of distance vs events for cell in column#306
     print "now plotting a sample graph:"

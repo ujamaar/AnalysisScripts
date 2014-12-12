@@ -9,7 +9,7 @@ import re
 #directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 #directory path format for mac computers:
-directory_path ='/Users/njoshi/Desktop/test_data'
+directory_path ='/Users/njoshi/Desktop/events_test'
 #directory_path ='/Volumes/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 def extract_details_per_frame (complete_file):
@@ -24,7 +24,7 @@ def extract_details_per_frame (complete_file):
 
     input_array = numpy.loadtxt(complete_file, dtype='int', comments='#', delimiter=',', skiprows=2)
     
-    output_array = numpy.empty((input_array[len(input_array) - 1][13],7))
+    output_array = numpy.empty((input_array[len(input_array) - 1][13],8))
     i = -1
     
     for row in range(0, len(input_array)):
@@ -38,11 +38,15 @@ def extract_details_per_frame (complete_file):
             output_array[i][4] = input_array[row][5]    #reward count
             output_array[i][5] = input_array[row][6]    #distance
             output_array[i][6] = input_array[row][15]   #lap count
+            if(input_array.shape[1]>=17):               #environment
+                output_array[i][7] = input_array[row][16]   
+            else:
+                output_array[i][7] = 1
        
             # alternative method, but allegedly less efficient: output_array = numpy.vstack([output_array,new_row])
     
     #now save the array as a csv file in the same location as the input file
-    numpy.savetxt(complete_file + '_per_frame.csv', output_array, fmt='%i', delimiter=',', newline='\n')
+    numpy.savetxt(complete_file.replace('.csv','_per_frame.csv'), output_array, fmt='%i', delimiter=',', newline='\n')
 
 
 #to make sure that the files are processed in the proper order (not really important here, but just in case)
@@ -62,4 +66,6 @@ for filez in file_names:
     if os.path.isfile(filez + '_per_frame.csv'):
         print 'A per_frame file already exists for this file. Delete the old per_frame file to generate a new one.'
     else:
+        print 'Extracting data from behavior file:'
+        print filez
         extract_details_per_frame(filez)

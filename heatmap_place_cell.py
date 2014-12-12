@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 
-event_data = np.loadtxt('/Users/njoshi/Desktop/test_data/sample_events_for_place_cell.csv', dtype='float', delimiter=',')
+file_path = '/Users/njoshi/Desktop/test_data/sample_events_for_place_cell.csv'
+
+event_data = np.loadtxt(file_path, dtype='float', delimiter=',')
 #event_data = event_data[0:22,0:5]
 #to plot time as x-axis, transpose the whole array
 event_data = event_data.transpose()
@@ -12,7 +14,12 @@ print "Events array size is: (%d ,%d)" %(event_data.shape[0], event_data.shape[1
 odor = event_data[2,:]
 lap_count = event_data[6,:]
 total_laps = max(lap_count) + 1
-print 'There are %d laps in this trial' %total_laps
+distance = event_data[5,:]
+track_length = max(4500,int(max(distance)))
+environment = event_data[7,:]
+number_of_environments = int(max(environment))
+print 'There are %d laps in this recording' %total_laps
+print 'There are %d environments in this recording' %number_of_environments
 #print odor[0:15]
 
 
@@ -25,18 +32,13 @@ event_data = np.delete(event_data, (0,1,2,3,4,5,6,7,8), axis=0)
 total_number_of_cells = len(event_data)
 print 'There are %d cells to be plotted' %total_number_of_cells
 
-#print a portion of the event data just to check
-#print event_data[0:10,0:10]
-
-
 
 ###############################################################################
 #if there are too many time points, condense the data points to keep the array size within a sane range
 #lets say the size of the figure will be adjusted to always have 100 time points
-number_of_odors = 4
-event_data_for_plotting = np.empty((event_data.shape[0],total_laps*number_of_odors)) 
-
-
+distance_bin = 50  #in mm (5cm)
+number_of_distance_bins = track_length / distance_bin
+event_data_for_plotting = np.empty((event_data.shape[0],number_of_environments*number_of_distance_bins)) 
 
 
 for row in range(0,event_data.shape[0]):
@@ -99,49 +101,31 @@ def generate_plots(data_array,sorted_column):
 
     figs = []
     
-    #you can choose to limit how many cells get plotted in one graph
-    cells_in_one_plot = total_number_of_cells
-    last_cell_index = 0
+    fig = plt.figure()
+    fig.suptitle('Plot of %d sorted cells'%total_number_of_cells, fontsize=12)
+    ax1 = plt.subplot2grid((5,5), (0,0), colspan=5, rowspan=5)
+        
+    #now make the actual plot using pcolor
+    event_heatmap = ax1.pcolor(data_array, cmap=plt.cm.Blues)
     
-    keep_plotting_figures = True
-    
-    while(keep_plotting_figures):    
-        fig = plt.figure()
-        fig.suptitle('Plot of %d sorted cells'%total_number_of_cells, fontsize=12)
-        ax1 = plt.subplot2grid((4,4), (0,0), rowspan=4)
-#        ax2 = plt.subplot2grid((3,4), (0,1), rowspan=3)
-#        ax3 = plt.subplot2grid((3,4), (0,2), rowspan=3)
-#        ax4 = plt.subplot2grid((3,4), (0,3), rowspan=3)
-        
-        
-        if(last_cell_index + cells_in_one_plot >= total_number_of_cells):
-            cells_in_one_plot =  total_number_of_cells - last_cell_index
-            keep_plotting_figures = False
-         
-        plot_data = data_array[last_cell_index:last_cell_index + cells_in_one_plot,:]
-        last_cell_index = last_cell_index + cells_in_one_plot
-        
-        #now make the actual plot using pcolor
-        event_heatmap = ax1.pcolor(plot_data, cmap=plt.cm.Blues)
-        
-        ax1.xaxis.tick_bottom()
+    ax1.xaxis.tick_bottom()
 
-        ax1.set_xlabel('Odor')
-        ax1.set_ylabel('Cell#')
-        #plt.xlim(0,plot_data.shape[1])
-        plt.ylim (0 , cells_in_one_plot)
-        
-        row_labels = list(' 1 2 3 4')
-        ax1.set_xticklabels(row_labels, minor=False)
-        
-        #can be commented out to stop showing all plots in the console
-        plt.show()
-        
-        figs.append(fig)
-        plt.close()
+    ax1.set_xlabel('Odor')
+    ax1.set_ylabel('Cell#')
+    #plt.xlim(0,plot_data.shape[1])
+    plt.ylim (0,total_number_of_cells)
+    
+    row_labels = list(' 1 2 3 4')
+    ax1.set_xticklabels(row_labels, minor=False)
+    
+    #can be commented out to stop showing all plots in the console
+    plt.show()
+    
+    figs.append(fig)
+    plt.close()
         
     if len(figs) > 0:
-        pdf_name = '/Users/njoshi/Desktop/test_data/test_plot.pdf'
+        pdf_name = file_path.replace(".csv", ".pdf")
         pp = PdfPages(pdf_name)
         for fig in figs:
             pp.savefig(fig)

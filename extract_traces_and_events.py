@@ -8,7 +8,7 @@ import re
 
 
 #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
-directory_path ='/Users/njoshi/Desktop/test_data'
+directory_path ='/Users/njoshi/Desktop/events_test'
 
 def extract_details_per_frame (imaging_file):
     

@@ -10,7 +10,7 @@ import re
 
 
 #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
-directory_path ='/Users/njoshi/Desktop/test_data'
+directory_path ='/Users/njoshi/Desktop/events_test'
 
 def extract_details_per_frame (behavior,images,dropped_frames):
     
@@ -84,10 +84,18 @@ file_names.sort(key=natural_key)
 # if there are missing frames, run this statement
 if (len(file_names) == 3):
     print "Looks like there are some missing frames in this imaging dataset"
+    print 'Combining behavior file:'
+    print file_names[0]
+    print 'with imaging file:'
+    print file_names[1]
     extract_details_per_frame(file_names[0],file_names[1],file_names[2])
 #if there are no missing frames
 elif(len(file_names) == 2):
     print "There are no missing frames in this dataset."
+    print 'Combining behavior file:'
+    print file_names[0]
+    print 'with imaging file:'
+    print file_names[1]    
     extract_details_per_frame(file_names[0],file_names[1],0)
 else:
     print "Please make sure that there are an appropriate number of files for combining"
