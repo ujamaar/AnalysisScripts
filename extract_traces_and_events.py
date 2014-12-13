@@ -42,8 +42,7 @@ file_names = [os.path.join(directory_path, f)
     for f in files if f.endswith('.csv')]
 
 if(len(file_names) == 1):
-    print "Separating traces and events for all cells in this file:"
-    print file_names[0]
+    print "Separating traces and events for all cells in this file: "+ file_names[0]
     extract_details_per_frame(file_names[0])
 else:
     print "Please make sure that there is one (and only one) imaging file in the given folder"

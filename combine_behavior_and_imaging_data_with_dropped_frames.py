@@ -17,19 +17,21 @@ def extract_details_per_frame (behavior,images,dropped_frames):
     behavior_data = numpy.loadtxt(behavior, dtype='int', comments='#', delimiter=',')
     print "Behavior array size is: "
     print behavior_data.shape
+    print 'Total number of frames recorded by arduino: %d'%behavior_data.shape[0]
     
     imaging_data = numpy.loadtxt(images, dtype='float', comments='#', delimiter=',')
     print "Imaging array size is: "
     print imaging_data.shape
+    print 'Total number of frames recorded by scope: %d'%imaging_data.shape[0]
     
     # run this only if there are missing frames
     missing_frames = []
     if (dropped_frames == 0):
         missing_frames = [0]
+        print 'There are no dropped frames in thi recording.'
     else:
         missing_frames = numpy.loadtxt(dropped_frames, dtype='int', comments='#', delimiter=',')
-        print "Number of dropped frames: "
-        print missing_frames.size
+        print "Number of dropped frames: %d"%missing_frames.size
     
     output_file = numpy.empty((behavior_data.shape[0],behavior_data.shape[1]+imaging_data.shape[1]))    
     print "Output array size is: "
@@ -55,7 +57,7 @@ def extract_details_per_frame (behavior,images,dropped_frames):
                     output_file[row][column] = imaging_data[row - adjust_for_missing_frames][column-behavior_data.shape[1]]
            
     #now save the array as a csv file in the same location as the input file
-    numpy.savetxt(directory_path + '/behavior_and_imaging_combined.csv', output_file, fmt='%.2f', delimiter=',', newline='\n')
+    numpy.savetxt(behavior.replace('.csv','_combined_behavior_and_events.csv'), output_file, fmt='%.2f', delimiter=',', newline='\n')
     
     #generate a sample plot of distance vs events for cell in a selected column (such as output_file.shape[1]*2/3 )
     print "now plotting a sample graph:"
