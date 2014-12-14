@@ -78,7 +78,7 @@ for row in range(0,event_data.shape[0]):
     current_lap = 0
     current_odor = -1
     new_lap_starts_in_this_column = 0
-    odor_starts_in_this_column = 0
+    new_odor_starts_in_this_column = 0
     column = 1
     if (row % 20 == 0):
         print 'Processing cell# %d / %d'%(row,total_number_of_cells)
