@@ -44,12 +44,12 @@ total_laps = max(lap_count) + 1
 distance = event_data[5,:]
 track_length = max(distance)
 
-magnification_factor = 0
+expansion_factor = 0
 while(True):
-    if((track_length > magnification_factor*4500) and (track_length <= (magnification_factor+1)*4500)):
-        track_length = (magnification_factor+1)*4500
+    if((track_length > expansion_factor*4500) and (track_length <= (expansion_factor+1)*4500)):
+        track_length = (expansion_factor+1)*4500
         break
-    magnification_factor = magnification_factor+1
+    expansion_factor = expansion_factor+1
 print 'Track length = %dmm'%track_length
 
 environment = event_data[7,:]
@@ -164,51 +164,51 @@ print event_data_averaged_per_environment[0,:]
 ###############################################################################
 
 def generate_plots(complete_data_array):
+    
+    
 
     figs = []
     
-    for env in range(0,number_of_environments):
-        data_array = complete_data_array[:,env*number_of_odors:(env+1)*number_of_odors]
+    for odor in range(0,complete_data_array.shape[1]):
+        
+        data_array = complete_data_array[np.argsort(complete_data_array[:,odor],kind='quicksort')]
+        
         fig = plt.figure()
         fig.set_rasterized(True)
-        fig.suptitle('Plot of %d sorted cells in env %d '%(total_number_of_cells,(env+1)))
+        fig.suptitle('Plot of %d sorted cells' %total_number_of_cells)
         #fig.set_size_inches(10,2) 
-        ax1 = plt.subplot2grid((3,4), (0,0), rowspan=3)
-        ax2 = plt.subplot2grid((3,4), (0,1), rowspan=3, sharex=ax1, sharey=ax1)
-        ax3 = plt.subplot2grid((3,4), (0,2), rowspan=3, sharex=ax1, sharey=ax1)
-        ax4 = plt.subplot2grid((3,4), (0,3), rowspan=3, sharex=ax1, sharey=ax1)
         
-        #sort the cells according to their response to an odor     
-        plot_data1 = data_array[np.argsort(data_array[:,0],kind='quicksort')]
-        plot_data2 = data_array[np.argsort(data_array[:,1],kind='quicksort')]
-        plot_data3 = data_array[np.argsort(data_array[:,2],kind='quicksort')]
-        plot_data4 = data_array[np.argsort(data_array[:,3],kind='quicksort')]
+        ax1 = plt.subplot2grid((number_of_environments,number_of_environments), (0,0), rowspan=number_of_environments)
+        heatmap1 = ax1.pcolor(data_array[:,0:4], cmap=plt.cm.Blues)
+        plt.colorbar(heatmap1)
+        od = odor_sequence[0:4]
+        row_labels = list(' %d %d %d %d' %(od[0],od[1],od[2],od[3]))
+        ax1.set_xticklabels(row_labels, minor=False)
+
+
+        for env in range (1,number_of_environments):
+            ax = plt.subplot2grid((number_of_environments,number_of_environments), (0,env), rowspan=number_of_environments, sharey=ax1)
+            heatmap = ax.pcolor(data_array[:,env*number_of_odors:(env+1)*number_of_odors], cmap=plt.cm.Blues) 
+            color_legend = plt.colorbar(heatmap,aspect=30)
+            color_legend.ax.tick_params(labelsize=8) 
+            plt.setp(ax.get_yticklabels(), visible=False)
+            od = odor_sequence[env*number_of_odors:(env+1)*number_of_odors]
+            row_labels = list(' %d %d %d %d' %(od[0],od[1],od[2],od[3]))
+            ax.set_xticklabels(row_labels, minor=False) 
+            fig.add_subplot(ax)
         
-        #now make the actual plot using pcolor
-        #some color schemes: http://wiki.scipy.org/Cookbook/Matplotlib/Show_colormaps
-        #Blues,YlOrRd
-        heatmap1 = ax1.pcolor(plot_data1, cmap=plt.cm.Blues) 
-        heatmap2 = ax2.pcolor(plot_data2, cmap=plt.cm.Blues)
-        heatmap3 = ax3.pcolor(plot_data3, cmap=plt.cm.Blues)
-        heatmap4 = ax4.pcolor(plot_data4, cmap=plt.cm.Blues) 
         
-        color_legend1 = plt.colorbar(heatmap1)
-    #    color_legend2 = plt.colorbar(heatmap2)
-    #    color_legend3 = plt.colorbar(heatmap3)
-    #    color_legend4 = plt.colorbar(heatmap4)
+        
         #the x and y axis labels of ax1 are shared by all other subplots
         ax1.xaxis.tick_bottom()
         ax1.set_xlabel('Odor')
         ax1.set_ylabel('Cell#')
-        od = odor_sequence[env*number_of_odors:env*number_of_odors+4]
-        row_labels = list(' %d %d %d %d' %(od[0],od[1],od[2],od[3]))
-        ax1.set_xticklabels(row_labels, minor=False)
-    
+
         plt.ylim (0,total_number_of_cells)
         
         #suppress the y labels of all subplots except ax1
-        yticklabels = ax2.get_yticklabels()+ax3.get_yticklabels()+ax4.get_yticklabels()  
-        plt.setp(yticklabels, visible=False)
+#        yticklabels = ax2.get_yticklabels()+ax3.get_yticklabels()+ax4.get_yticklabels()  
+#        plt.setp(yticklabels, visible=False)
         
         #can be commented out to stop showing all plots in the console
         plt.show()

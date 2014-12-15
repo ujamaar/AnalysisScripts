@@ -10,26 +10,28 @@ directory_path ='/Users/njoshi/Desktop/events_test'
 def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file, missing_frame_file):
     #fast_output_array = numpy.loadtxt(complete_file, dtype='int', comments='#', delimiter=',', converters=None, skiprows=2, usecols=(0,1,3,5,6,12,15), unpack=False, ndmin=0) 
     
-    raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',', skiprows=2)
-    #extract only the relevant columns from the raw behavior file
-    behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][13],8))
-    i = -1
-    
-    for row in range(0, len(raw_behavior)):
-        #save data only if there's a new frame in the current data reading
-        if(raw_behavior[row][12] > 0):
-            i = i + 1
-            behavior[i][0] = raw_behavior[row][12]   #frame count
-            behavior[i][1] = raw_behavior[row][0]    #time
-            behavior[i][2] = raw_behavior[row][1]    #odor
-            behavior[i][3] = raw_behavior[row][3]    #lick count
-            behavior[i][4] = raw_behavior[row][5]    #reward count
-            behavior[i][5] = raw_behavior[row][6]    #distance
-            behavior[i][6] = raw_behavior[row][15]   #lap count
-            if(raw_behavior.shape[1]>=17):               #environment
-                behavior[i][7] = raw_behavior[row][16]   
-            else:
-                behavior[i][7] = 1
+    behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',')
+
+#uncomment if using raw behavior file
+#    #extract only the relevant columns from the raw behavior file
+#    behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][13],8),dtype='int')
+#    i = -1
+#    
+#    for row in range(0, len(raw_behavior)):
+#        #save data only if there's a new frame in the current data reading
+#        if(raw_behavior[row][12] > 0):
+#            i = i + 1
+#            behavior[i][0] = raw_behavior[row][12]   #frame count
+#            behavior[i][1] = raw_behavior[row][0]    #time
+#            behavior[i][2] = raw_behavior[row][1]    #odor
+#            behavior[i][3] = raw_behavior[row][3]    #lick count
+#            behavior[i][4] = raw_behavior[row][5]    #reward count
+#            behavior[i][5] = raw_behavior[row][6]    #distance
+#            behavior[i][6] = raw_behavior[row][15]   #lap count
+#            if(raw_behavior.shape[1]>=17):               #environment
+#                behavior[i][7] = raw_behavior[row][16]   
+#            else:
+#                behavior[i][7] = 1
     
     print "Behavior array size is: "
     print behavior.shape
@@ -39,7 +41,7 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
 
 
     valid_cells = numpy.loadtxt(valid_cells_file, dtype='int', comments='#', delimiter=',')
-    print "Valid cell list size is: %d"%valid_cells.size
+    print "Number of putative cells: %d"%valid_cells.size
     number_of_valid_cells = numpy.sum(valid_cells) 
     print "Number of valid cells in this recording: %d"%number_of_valid_cells   
 ###############################################################################
@@ -59,19 +61,9 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
         line = f.readline()
         index += 1
     f.close()
-    print 'Size of events file is: %d'%len(events)    
-    print events[0:10]
-###############################################################################
-
-
-    # run this only if there are missing frames
-    missing_frames = []
-    if (missing_frame_file == 0):
-        missing_frames = [0]
-        print 'There are no dropped frames in this recording.'
-    else:
-        missing_frames = numpy.loadtxt(missing_frame_file, dtype='int', comments='#', delimiter=',')
-        print "Number of dropped frames: %d"%missing_frames.size
+    print 'Size of events file is: %d'%len(events) 
+    print 'Some events for cells(valid as well as impostors):'
+    print events[0:5]
 ###############################################################################
 
 
@@ -85,17 +77,31 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
     #print valid_cell_events[len(valid_cell_events)-6:len(valid_cell_events)]
     
     #    
-    events_by_frame = numpy.empty((number_of_frames,number_of_valid_cells))   
-    
+    events_by_frame = numpy.empty((number_of_frames,number_of_valid_cells),dtype='int')   
+    max_frame_with_event = 0
     for this_cell in range(0,number_of_valid_cells):
         frames_in_this_cell = len(valid_cell_events[this_cell])
         for this_frame in range(0,frames_in_this_cell):
-            event_frame_index = valid_cell_events[this_cell][this_frame] -1
+            event_frame_index = (valid_cell_events[this_cell][this_frame] -1)*2 #multiply by 2 b/c imaging data has been down sampled (10 frames/sec to 5)
             events_by_frame[event_frame_index][this_cell] = 1
+            if(event_frame_index > max_frame_with_event):
+                max_frame_with_event = event_frame_index
+    print 'The last event was registered at frame# %d'%max_frame_with_event
 ###############################################################################    
 
 
-    events_adjusted_for_missing_frames = numpy.empty((number_of_frames,behavior.shape[1] + number_of_valid_cells))
+    # run this only if there are missing frames
+    missing_frames = []
+    if (missing_frame_file == 0):
+        missing_frames = [0]
+        print 'There are no dropped frames in this recording :)'
+    else:
+        missing_frames = numpy.loadtxt(missing_frame_file, dtype='int', comments='#', delimiter=',')
+        print "Number of dropped frames: %d"%missing_frames.size
+###############################################################################
+
+    print 'Now we will nicely pack and save all this information in one csv file:'
+    events_adjusted_for_missing_frames = numpy.empty((number_of_frames,behavior.shape[1] + number_of_valid_cells),dtype='int')
 
     adjust_for_missing_frames = 0
     
@@ -106,7 +112,7 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
                 if (cell < behavior.shape[1]):
                     events_adjusted_for_missing_frames[frame][cell] = behavior[frame][cell]
                 else:
-                    events_adjusted_for_missing_frames[frame][cell] = numpy.nan
+                    events_adjusted_for_missing_frames[frame][cell] = 0 # use numpy.nan to be more exact, b/c the frame is missing
         #business is as usual if frames are not missing:
         else:
             for cell in range(0,events_adjusted_for_missing_frames.shape[1]):
@@ -115,9 +121,10 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
                 else:
                     events_adjusted_for_missing_frames[frame][cell] = events_by_frame[frame - adjust_for_missing_frames][cell-behavior.shape[1]]           
     
-    
+    print 'The saved array size is:'
+    print events_adjusted_for_missing_frames.shape
     #now save the array as a csv file in the same location as the input file
-    numpy.savetxt(raw_behavior_file.replace('.csv','_combined_behavior_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
+    numpy.savetxt(raw_behavior_file.replace('.csv','_and_events_combined.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
 
 ###############################################################################
 ###############################################################################
