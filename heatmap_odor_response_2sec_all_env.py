@@ -66,7 +66,7 @@ print 'Number of imaging frames: %d'%total_number_of_frames
 ## extract some parameters: enviorment transitions, odor sequence, track length
 ###############################################################################
 
-odor_response_time_window = 000 #time in ms
+odor_response_time_window = 2000 #time in ms
 odor_response_distance_window = 500 #in mm
 
 #find out in which laps a new environment starts
@@ -141,6 +141,7 @@ for row in range(0,total_number_of_cells):
             current_lap = lap_count[column]
             current_odor = 0
             current_env = 0
+            
             for env in range(0,number_of_environments):
                 if(current_lap >= environment_transitions[env]):
                     current_env = env
@@ -151,26 +152,26 @@ for row in range(0,total_number_of_cells):
             while((column < total_number_of_frames) and (lap_count[column] == lap_count[column-1])):    #for each lap
                 #this if-statement is true only for non-zero odors
                 #if((odor[column]>0) and (odor[column] == odor[column-1])):
-                if((distance[column] >= odor_start_points[current_env*4+current_odor]) and ((distance[column] - odor_start_points[current_env*4+current_odor]) < 50)):
-                    #this while loop is true as long as the current odor is ON
-                    odor_response = 0
-                    odor_start_time =time_stamp[column]
-                    odor_start_distance = distance[column]
-#                    if (row == 0):
-#                        print 'odor start %d'%distance[column]
-                    #while((column < total_number_of_frames) and (odor[column]==odor[column-1])):         #for each odor in each lap
-                    #while((column < total_number_of_frames) and ((distance[column] - odor_start_distance) <= odor_response_distance_window)):         #for each odor in each lap
-                    while((column < total_number_of_frames) and (time_stamp[column] - odor_start_time <= odor_response_time_window)):         #for each odor in each lap
-                        odor_response = odor_response + event_data[row][column]
+                if(current_odor < 4): #for each odor region
+                    if((distance[column] >= odor_start_points[current_env*4+current_odor])):
+                        #this while loop is true as long as the current odor is ON
+                        odor_response = 0
+                        odor_start_time =time_stamp[column]
+                        odor_start_distance = distance[column]
+    #                    if (row == 0):
+    #                        print 'odor start %d'%distance[column]
+                        #while((column < total_number_of_frames) and (odor[column]==odor[column-1])):         #for each odor in each lap
+                        #while((column < total_number_of_frames) and ((distance[column] - odor_start_distance) <= odor_response_distance_window)):         #for each odor in each lap
+                        while((column < total_number_of_frames) and (time_stamp[column] - odor_start_time <= odor_response_time_window)):         #for each odor in each lap
+                            odor_response = odor_response + event_data[row][column]
+                            column = column + 1
+                        event_data_for_plotting[row][current_lap*4 + current_odor] = odor_response
+#                        if(row == 0):
+#                            print odor_start_points[current_env*4+current_odor]
+#                            print 'current odor is %d              it ends at %d '%(current_odor,distance[column-1])
+                        current_odor = current_odor + 1
+                    else:
                         column = column + 1
-#                    if(row == 0):
-#                        print 'odor end %d' %distance[column-1]
-                    event_data_for_plotting[row][current_lap*4 + current_odor] = odor_response
-                    if(row == 0):
-                        print 'current odor is %d              it ends at %d '%(current_odor,distance[column-1])
-
-                    if(current_odor < 3):
-                        current_odor = current_odor+1
                 else:
                     column = column + 1
         else:
@@ -218,40 +219,34 @@ def generate_plots(complete_data_array):
         
         fig = plt.figure()
         fig.set_rasterized(True)
-        fig.suptitle('Plot of %d sorted cells' %total_number_of_cells)
+        fig.suptitle('Plot #%d of sorted odor events for %d cells' %(odor+1,total_number_of_cells))
         #fig.set_size_inches(10,2) 
         
         odor_response_ticks = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+#        column_label=[]
+#        for num in range(0,total_number_of_cells/50):
+#            column_label.append(num*50)
         
-        ax1 = plt.subplot2grid((number_of_environments,number_of_environments), (0,0), rowspan=number_of_environments)
-        heatmap1 = ax1.pcolor(data_array[:,0:4], cmap=plt.cm.Blues)
-        color_legend1 = plt.colorbar(heatmap1,aspect=30, ticks=odor_response_ticks)
-        #color_legend1.ax1.tick_params(labelsize=5)
-        od = odor_sequence[0:4]
-        row_labels = list(' %d %d %d %d' %(od[0],od[1],od[2],od[3]))
-        ax1.set_xticklabels(row_labels, minor=False)
-        #the x and y axis labels of ax1 are shared by all other subplots
-        ax1.xaxis.tick_bottom()
-        ax1.set_xlabel('Odor')
-        ax1.set_ylabel('Cell#')
-
-        for env in range (1,number_of_environments):
-            ax = plt.subplot2grid((number_of_environments,number_of_environments), (0,env), rowspan=number_of_environments, sharey=ax1)
+        for env in range (0,number_of_environments):
+            ax = plt.subplot2grid((number_of_environments,number_of_environments), (0,env), rowspan=number_of_environments)
             heatmap = ax.pcolor(data_array[:,env*4:(env+1)*4], cmap=plt.cm.Blues) 
             color_legend = plt.colorbar(heatmap,aspect=30,ticks=odor_response_ticks)
             color_legend.ax.tick_params(labelsize=5) 
             plt.setp(ax.get_yticklabels(), visible=False)
+            ax.set_title('%1.1fm Env%d'%(environment_track_lengths[env]/1000.00,env+1), fontsize='small')
             ax.set_xlabel('Odor')
             od = odor_sequence[env*4:(env+1)*4]
             row_labels = list(' %d %d %d %d' %(od[0],od[1],od[2],od[3]))
-            ax.set_xticklabels(row_labels, minor=False) 
+            ax.set_xticklabels(row_labels, minor=False)
+            ax.xaxis.tick_bottom() 
+            plt.ylim (0,total_number_of_cells) 
+
+            if(env==0):
+                plt.setp(ax.get_yticklabels(), visible=True)
+                ax.set_ylabel('Cell#')
             fig.add_subplot(ax)
-        
-        
-        
 
 
-        plt.ylim (0,total_number_of_cells)
         
         #suppress the y labels of all subplots except ax1
 #        yticklabels = ax2.get_yticklabels()+ax3.get_yticklabels()+ax4.get_yticklabels()  
