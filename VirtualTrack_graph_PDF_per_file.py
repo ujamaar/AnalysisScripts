@@ -23,8 +23,7 @@ track_length = 4500
 
 def generate_graph(filename):
     
-    data = [pylab.loadtxt(filename, delimiter=',',skiprows=2)]
-    datalist = data[0]
+    datalist = np.loadtxt(filename, dtype='int', delimiter=',', skiprows=2) 
     
     time = []
     valves = []

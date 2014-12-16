@@ -1,5 +1,5 @@
 import os
-from pylab import *
+import numpy as np
 import re
 
 #this script is for combining two behavior data files into one seamlessly
@@ -15,20 +15,14 @@ import re
 #directory_path ='//losonczy-server/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 #directory path format for mac computers:
-directory_path ='/Users/njoshi/Documents/nwp_test_data'
+directory_path ='/Users/njoshi/Desktop/events_test'
 #directory_path ='/Volumes/walter/Virtual_Odor/behavior_data/wfnjC8'
 
 def combine_files(file1,file2, output_filename):
-    
-    print "Combining two files in this sequence:"
-    print file1
-    print file2
-    
-    data = [pylab.loadtxt(file1, delimiter=',',skiprows=2)]
-    datalist1 = data[0]
-    
-    data = [pylab.loadtxt(file2, delimiter=',',skiprows=2)]
-    datalist2 = data[0]    
+        
+    datalist1 = np.loadtxt(file1, dtype='int', delimiter=',', skiprows=2)
+    datalist2 = np.loadtxt(file2, dtype='int', delimiter=',', skiprows=2)    
+
     
     time = []
     valves = []
@@ -106,8 +100,6 @@ def combine_files(file1,file2, output_filename):
     ##now just save all the lists together in a .csv file
     
     
-    
-    
     big_file = open(output_filename, "a+")
     
     print "The combined file is:"
@@ -134,18 +126,18 @@ def combine_files(file1,file2, output_filename):
         big_file.write(new_line)
 
 #source: http://stackoverflow.com/questions/18715688/find-common-substring-between-two-strings    
-def longestSubstringFinder(string1, string2):
-    answer = ""
-    len1, len2 = len(string1), len(string2)
-    for i in range(len1):
-        match = ""
-        for j in range(len2):
-            if (i + j < len1 and string1[i + j] == string2[j]):
-                match += string2[j]
-            else:
-                if (len(match) > len(answer)): answer = match
-                match = ""
-    return answer + '0000_combined_file.csv'
+#def longestSubstringFinder(string1, string2):
+#    answer = ""
+#    len1, len2 = len(string1), len(string2)
+#    for i in range(len1):
+#        match = ""
+#        for j in range(len2):
+#            if (i + j < len1 and string1[i + j] == string2[j]):
+#                match += string2[j]
+#            else:
+#                if (len(match) > len(answer)): answer = match
+#                match = ""
+#    return answer + '_combined.csv'
      
 
 #to make sure that the files are processed in the proper order (not really important here, but just in case)
@@ -158,9 +150,30 @@ file_names = [os.path.join(directory_path, f)
     for f in files if f.endswith('.csv')]
 file_names.sort(key=natural_key)
 
-output_file = longestSubstringFinder(file_names[0],file_names[1])
 
-#now combine all files in the folder
-combine_files(file_names[0],file_names[1], output_file)
+#now on to the actual analysis:
+if (len(file_names) == 2):
+    print 'Combining two files in this order:'
+    print 'First file: '+ file_names[0]
+    print 'Second file: '+ file_names[1]
+
+    #output_file = longestSubstringFinder(file_names[0],file_names[1])
+    output_file = file_names[0].replace(".csv", "_combined.csv")
+
+    #now combine all files in the folder
+    combine_files(file_names[0],file_names[1], output_file)
+else:
+    print "Please make sure that there are only two csv files in the folder"
+
+
+
+
+
+
+
+
+
+
+
 
 

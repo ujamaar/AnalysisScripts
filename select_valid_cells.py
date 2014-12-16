@@ -10,28 +10,28 @@ directory_path ='/Users/njoshi/Desktop/events_test'
 def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file, missing_frame_file):
     #fast_output_array = numpy.loadtxt(complete_file, dtype='int', comments='#', delimiter=',', converters=None, skiprows=2, usecols=(0,1,3,5,6,12,15), unpack=False, ndmin=0) 
     
-    behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',')
+    raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',')
 
 #uncomment if using raw behavior file
-#    #extract only the relevant columns from the raw behavior file
-#    behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][13],8),dtype='int')
-#    i = -1
-#    
-#    for row in range(0, len(raw_behavior)):
-#        #save data only if there's a new frame in the current data reading
-#        if(raw_behavior[row][12] > 0):
-#            i = i + 1
-#            behavior[i][0] = raw_behavior[row][12]   #frame count
-#            behavior[i][1] = raw_behavior[row][0]    #time
-#            behavior[i][2] = raw_behavior[row][1]    #odor
-#            behavior[i][3] = raw_behavior[row][3]    #lick count
-#            behavior[i][4] = raw_behavior[row][5]    #reward count
-#            behavior[i][5] = raw_behavior[row][6]    #distance
-#            behavior[i][6] = raw_behavior[row][15]   #lap count
-#            if(raw_behavior.shape[1]>=17):               #environment
-#                behavior[i][7] = raw_behavior[row][16]   
-#            else:
-#                behavior[i][7] = 1
+    #extract only the relevant columns from the raw behavior file
+    behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][13],8),dtype='int')
+    i = -1
+    
+    for row in range(0, len(raw_behavior)):
+        #save data only if there's a new frame in the current data reading
+        if(raw_behavior[row][12] > 0):
+            i = i + 1
+            behavior[i][0] = raw_behavior[row][12]   #frame count
+            behavior[i][1] = raw_behavior[row][0]    #time
+            behavior[i][2] = raw_behavior[row][1]    #odor
+            behavior[i][3] = raw_behavior[row][3]    #lick count
+            behavior[i][4] = raw_behavior[row][5]    #reward count
+            behavior[i][5] = raw_behavior[row][6]    #distance
+            behavior[i][6] = raw_behavior[row][15]   #lap count
+            if(raw_behavior.shape[1]>=17):               #environment
+                behavior[i][7] = raw_behavior[row][16]   
+            else:
+                behavior[i][7] = 1
     
     print "Behavior array size is: "
     print behavior.shape
@@ -155,7 +155,7 @@ if (len(file_names) == 3):
     print 'Valid cells: '+ file_names[2]
     extract_details_per_frame(file_names[0],file_names[1],file_names[2],0)
 # if there are missing frames, run this statement
-if (len(file_names) == 4):
+elif (len(file_names) == 4):
     print 'Some imaging frames are missing in this recording.'
     print 'Behavior file: '+ file_names[0]
     print 'Events file: '+ file_names[1]
