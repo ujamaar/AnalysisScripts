@@ -1,4 +1,3 @@
-#based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
@@ -7,9 +6,11 @@ import re
 
 #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
 directory_path ='/Users/njoshi/Desktop/events_test'
+odor_response_time_window = 2000 #time in ms
+#odor_response_distance_window = 500 #in mm
 
 def read_data_and_generate_plots(file_path):
-
+    
     event_data = np.loadtxt(file_path, dtype='int', delimiter=',')
     #event_data = event_data[0:22,0:5]
     #to plot time as x-axis, transpose the whole array
@@ -56,7 +57,7 @@ def read_data_and_generate_plots(file_path):
     ## extract some parameters: enviorment transitions, odor sequence, track length
     ###############################################################################
     
-    odor_response_time_window = 2000 #time in ms
+    #odor_response_time_window = 2000 #time in ms
     #odor_response_distance_window = 500 #in mm
     
     #find out in which laps a new environment starts
@@ -69,15 +70,14 @@ def read_data_and_generate_plots(file_path):
     environment_transitions.append(lap_count[total_number_of_frames-1])
     print 'A new environment starts in these laps:'
     print environment_transitions
-    
-    
+        
     #find out the odor sequence for each environment
     #this is to print the correct odor sequence on the x-axis
     #and find out the track length in each environment
     odor_sequence = np.zeros((number_of_environments*4),dtype='int')
-    odor_start_points = np.zeros((number_of_environments*4),dtype='int')
+    odor_start_points = np.zeros((number_of_environments*5),dtype='int')   # 5 instead of 4 b/c we want to include the response to rewards as well
     environment_track_lengths = np.zeros((number_of_environments),dtype='int')
-    
+    laps_in_environment = np.zeros(number_of_environments,dtype='int')
     
     
     for env in range(0,number_of_environments):
@@ -95,17 +95,20 @@ def read_data_and_generate_plots(file_path):
                     track_length_in_this_env = distance[column]
         expansion_factor = (track_length_in_this_env / 4500) + 1
         environment_track_lengths[env] = expansion_factor*4500
+        laps_in_environment[env] = environment_transitions[env+1]-environment_transitions[env]
         
-        odor_start_points[env*4 + 0] =  250*expansion_factor
-        odor_start_points[env*4 + 1] = 1250*expansion_factor
-        odor_start_points[env*4 + 2] = 2250*expansion_factor
-        odor_start_points[env*4 + 3] = 3250*expansion_factor
-    
-    
+        odor_start_points[env*5 + 0] =  250*expansion_factor
+        odor_start_points[env*5 + 1] = 1250*expansion_factor
+        odor_start_points[env*5 + 2] = 2250*expansion_factor
+        odor_start_points[env*5 + 3] = 3250*expansion_factor
+        odor_start_points[env*5 + 4] = 3750*expansion_factor #this is where the odor starts
+
     print 'The odors were presented in this sequence (4 odors per environment):'
     print odor_sequence
     print 'The track lengths in all enviornments are:'
     print environment_track_lengths
+    print 'Number of laps in each enviornment:'
+    print laps_in_environment
     print 'The odors start at these distance points:'
     print odor_start_points
     
@@ -116,10 +119,7 @@ def read_data_and_generate_plots(file_path):
     
     event_data_for_plotting = np.empty((total_number_of_cells,total_number_of_frames),dtype='int') 
     
-    for row in range(0,total_number_of_cells):
-    #    current_lap = 0
-    #    current_odor = 0
-    
+    for row in range(0,total_number_of_cells):    
         if (row % 50 == 0):
             print 'Processing cell# %d / %d'%(row,total_number_of_cells)
     
@@ -142,8 +142,8 @@ def read_data_and_generate_plots(file_path):
                 while((column < total_number_of_frames) and (lap_count[column] == lap_count[column-1])):    #for each lap
                     #this if-statement is true only for non-zero odors
                     #if((odor[column]>0) and (odor[column] == odor[column-1])):
-                    if(current_odor < 4): #for each odor region
-                        if((distance[column] >= odor_start_points[current_env*4+current_odor])):
+                    if(current_odor < 5): #for each odor region and the reward region (4+1)
+                        if((distance[column] >= odor_start_points[current_env*5+current_odor])):
                             #this while loop is true as long as the current odor is ON
                             odor_response = 0
                             odor_start_time =time_stamp[column]
@@ -152,13 +152,12 @@ def read_data_and_generate_plots(file_path):
         #                        print 'odor start %d'%distance[column]
                             #while((column < total_number_of_frames) and (odor[column]==odor[column-1])):         #for each odor in each lap
                             #while((column < total_number_of_frames) and ((distance[column] - odor_start_distance) <= odor_response_distance_window)):         #for each odor in each lap
-                            while((column < total_number_of_frames) and (time_stamp[column] - odor_start_time <= odor_response_time_window)):         #for each odor in each lap
+                            while((column < total_number_of_frames) and (time_stamp[column] - odor_start_time <= odor_response_time_window) and (lap_count[column] == lap_count[column-1])):         #for each odor in each lap
                                 odor_response = odor_response + event_data[row][column]
                                 column = column + 1
-                            event_data_for_plotting[row][current_lap*4 + current_odor] = odor_response
-    #                        if(row == 0):
-    #                            print odor_start_points[current_env*4+current_odor]
-    #                            print 'current odor is %d              it ends at %d '%(current_odor,distance[column-1])
+                            event_data_for_plotting[row][current_lap*5 + current_odor] = odor_response
+#                            if(row == 0):
+#                                print 'Odor %d    starts at %d    ends at %d '%(current_odor,odor_start_points[current_env*5+current_odor],distance[column-1])
                             current_odor = current_odor + 1
                         else:
                             column = column + 1
@@ -174,17 +173,17 @@ def read_data_and_generate_plots(file_path):
                   # also account for different environments #
     ###############################################################################
     
-    event_data_averaged_per_environment = np.empty((event_data.shape[0],4*number_of_environments),dtype='int')
+    event_data_averaged_per_environment = np.empty((total_number_of_cells,5*number_of_environments),dtype='int')
     
     for env in range(0,number_of_environments):
         environment_start_lap = environment_transitions[env]
         environment_end_lap = environment_transitions[env+1]
         environment_lap_count = environment_end_lap - environment_start_lap
         for row in range(0,event_data_averaged_per_environment.shape[0]):
-            for column in range(env*4,(env+1)*4):
+            for column in range(env*5,(env+1)*5):
                 laps_with_events = 0
                 for lap in range (environment_start_lap,environment_end_lap):
-                    if(event_data_for_plotting[row][lap*4 + column%4] > 0):
+                    if(event_data_for_plotting[row][lap*5 + column%5] > 0):
                         laps_with_events = laps_with_events + 1
                 event_data_averaged_per_environment[row][column] = ((laps_with_events*100) / environment_lap_count)
     
@@ -196,10 +195,8 @@ def read_data_and_generate_plots(file_path):
     ###################### now we plot some good nice heatmaps ####################
     ###############################################################################
     ###############################################################################
-    
+    #based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
     def generate_plots(complete_data_array):
-        
-        
     
         figs = []
         
@@ -213,21 +210,18 @@ def read_data_and_generate_plots(file_path):
             #fig.set_size_inches(10,2) 
             
             odor_response_ticks = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
-    #        column_label=[]
-    #        for num in range(0,total_number_of_cells/50):
-    #            column_label.append(num*50)
             
             for env in range (0,number_of_environments):
                 ax = plt.subplot2grid((number_of_environments,number_of_environments), (0,env), rowspan=number_of_environments)
-                heatmap = ax.pcolor(data_array[:,env*4:(env+1)*4], cmap=plt.cm.Blues) 
+                heatmap = ax.pcolor(data_array[:,env*5:(env+1)*5], cmap=plt.cm.Blues) 
                 color_legend = plt.colorbar(heatmap,aspect=30,ticks=odor_response_ticks)
                 color_legend.ax.tick_params(labelsize=5) 
                 plt.setp(ax.get_yticklabels(), visible=False)
-                ax.set_title('%1.1fm Env%d'%(environment_track_lengths[env]/1000.00,env+1), fontsize='small')
-                ax.set_xlabel('Odor')
+                ax.set_title('%1.1fm x %d laps'%(environment_track_lengths[env]/1000.00,laps_in_environment[env]), fontsize='x-small')
+                ax.set_xlabel('Env%d odors'%(env+1),fontsize='x-small')
                 od = odor_sequence[env*4:(env+1)*4]
-                row_labels = list(' %d %d %d %d' %(od[0],od[1],od[2],od[3]))
-                ax.set_xticklabels(row_labels, minor=False)
+                row_labels = list('%d%d%d%dR' %(od[0],od[1],od[2],od[3]))
+                ax.set_xticklabels(row_labels, minor=False,ha='center')
                 ax.xaxis.tick_bottom() 
                 plt.ylim (0,total_number_of_cells) 
     
@@ -235,12 +229,6 @@ def read_data_and_generate_plots(file_path):
                     plt.setp(ax.get_yticklabels(), visible=True)
                     ax.set_ylabel('Cell#')
                 fig.add_subplot(ax)
-    
-    
-            
-            #suppress the y labels of all subplots except ax1
-    #        yticklabels = ax2.get_yticklabels()+ax3.get_yticklabels()+ax4.get_yticklabels()  
-    #        plt.setp(yticklabels, visible=False)
             
             #can be commented out to stop showing all plots in the console
             plt.show()
@@ -249,7 +237,7 @@ def read_data_and_generate_plots(file_path):
             plt.close()
             
         if len(figs) > 0:
-            pdf_name = file_path.replace(".csv", ".pdf")
+            pdf_name = file_path.replace(".csv","_bin_%ds.pdf"%(odor_response_time_window/1000))
             pp = PdfPages(pdf_name)
             for fig in figs:
                 pp.savefig(fig,dpi=300)
@@ -259,6 +247,7 @@ def read_data_and_generate_plots(file_path):
     ################# just a final touch of the magic wand ########################
     ###############################################################################
     generate_plots(event_data_averaged_per_environment)
+
 
 #to make sure that the files are processed in the proper order (not really important here, but just in case)
 def natural_key(string_):
@@ -272,15 +261,8 @@ file_names.sort(key=natural_key)
 
 for mouse_data in file_names:
     print 'Analyzing this file: '+ mouse_data
-    if os.path.isfile(mouse_data.replace(".csv", ".pdf")):
+    if os.path.isfile(mouse_data.replace(".csv","_bin_%ds.pdf"%(odor_response_time_window/1000))):
         print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
     else:
         read_data_and_generate_plots(mouse_data)
-    
-    
-    
-    
-    
-    
-    
-    
+

@@ -10,9 +10,9 @@ directory_path ='/Users/njoshi/Desktop/events_test'
 def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file, missing_frame_file):
     #fast_output_array = numpy.loadtxt(complete_file, dtype='int', comments='#', delimiter=',', converters=None, skiprows=2, usecols=(0,1,3,5,6,12,15), unpack=False, ndmin=0) 
     
-    raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',')
+    raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',',skiprows=2)
 
-#uncomment if using raw behavior file
+    #uncomment if using raw behavior file
     #extract only the relevant columns from the raw behavior file
     behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][13],8),dtype='int')
     i = -1

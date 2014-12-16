@@ -12,7 +12,7 @@ def extract_details_per_frame (dropped_frames):
     missing_frames = numpy.loadtxt(dropped_frames, dtype='int', comments='#', delimiter=',')
     print "Number of dropped frames: %d"%missing_frames.size
     
-    adjustment_amount= 2982
+    adjustment_amount= 0
     print "Number that frame indices need to be adjusted by: %d"%adjustment_amount   
     
     for n in range(0,len(missing_frames)):
