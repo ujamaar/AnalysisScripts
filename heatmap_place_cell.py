@@ -1,3 +1,5 @@
+#http://stackoverflow.com/questions/27578648/customizing-colors-in-matplotlib-heatmap
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
@@ -217,44 +219,60 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 def generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,distance_bin_size,place_field):
 
     figs = []
-
-    data_array = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,0],kind='quicksort')]
-    np.savetxt(file_path.replace('.csv','_plotted_data_sorted.csv'), data_array, fmt='%i', delimiter=',', newline='\n')   
+    #heatmap_colors = ['Blues','Greens','BuPu','Oranges','Purples','Reds','RdPu','PuBu']
     
-    for env in range (0,number_of_environments):
-
-        fig = plt.figure()
-        fig.set_rasterized(True)
-        fig.suptitle('Place cell activity for %d cells in environment %d' %(total_number_of_cells,env+1))
-        #fig.set_size_inches(10,2) 
+    for plot_env in range (0,number_of_environments):
+        data_array = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,plot_env*2],kind='quicksort')]
+        np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array, fmt='%i', delimiter=',', newline='\n')   
         
-        #odor_response_ticks = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+        for env in range (0,number_of_environments):
+            fig = plt.figure()
+            fig.set_rasterized(True)
+            fig.suptitle('Place cell activity for %d cells in environment %d' %(total_number_of_cells,env+1))
+            ax = plt.subplot(111)
+            
+            if(plot_env%2 == 0):
+                heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.Blues) 
+                color_legend = plt.colorbar(heatmap,aspect=30)
+                color_legend.ax.tick_params(labelsize=5) 
+                
+                #plt.setp(ax.get_yticklabels(), visible=False)
+                ax.set_title('%1.1fm track x %d laps'%(environment_track_lengths[env]/1000.00,laps_in_environment[env]), fontsize='x-small')
+                ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+                #od = odor_sequence[env*4:(env+1)*4]
+                #row_labels = list('%d%d%d%dR' %(od[0],od[1],od[2],od[3]))
+                #ax.set_xticklabels(row_labels, minor=False,ha='center')
+                ax.xaxis.tick_bottom() 
+                plt.ylim (0,total_number_of_cells) 
+                plt.gca().invert_yaxis()
+        
+                plt.setp(ax.get_yticklabels(), visible=True)
+                ax.set_ylabel('Cell#')
+                fig.add_subplot(ax)
 
-             
-        ax = plt.subplot(111)
-        heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.Blues) 
-        color_legend = plt.colorbar(heatmap,aspect=30)
-        color_legend.ax.tick_params(labelsize=5) 
-        #ax.invert_yaxis()
-        #plt.setp(ax.get_yticklabels(), visible=False)
-        ax.set_title('%1.1fm track x %d laps'%(environment_track_lengths[env]/1000.00,laps_in_environment[env]), fontsize='x-small')
-        ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
-        #od = odor_sequence[env*4:(env+1)*4]
-        #row_labels = list('%d%d%d%dR' %(od[0],od[1],od[2],od[3]))
-        #ax.set_xticklabels(row_labels, minor=False,ha='center')
-        ax.xaxis.tick_bottom() 
-        plt.ylim (0,total_number_of_cells) 
-        plt.gca().invert_yaxis()
+            else:
+                heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.Reds) 
+                color_legend = plt.colorbar(heatmap,aspect=30)
+                color_legend.ax.tick_params(labelsize=5) 
 
-        plt.setp(ax.get_yticklabels(), visible=True)
-        ax.set_ylabel('Cell#')
-        fig.add_subplot(ax)
-    
-        #can be commented out to stop showing all plots in the console
-        plt.show()
-
-        figs.append(fig)
-        plt.close()
+                #plt.setp(ax.get_yticklabels(), visible=False)
+                ax.set_title('%1.1fm track x %d laps'%(environment_track_lengths[env]/1000.00,laps_in_environment[env]), fontsize='x-small')
+                ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+                #od = odor_sequence[env*4:(env+1)*4]
+                #row_labels = list('%d%d%d%dR' %(od[0],od[1],od[2],od[3]))
+                #ax.set_xticklabels(row_labels, minor=False,ha='center')
+                ax.xaxis.tick_bottom() 
+                plt.ylim (0,total_number_of_cells) 
+                plt.gca().invert_yaxis()
+        
+                plt.setp(ax.get_yticklabels(), visible=True)
+                ax.set_ylabel('Cell#')
+                fig.add_subplot(ax)
+        
+            #can be commented out to stop showing all plots in the console
+            plt.show()
+            figs.append(fig)
+            plt.close()
         
     if len(figs) > 0:
         pdf_name = file_path.replace(".csv","_sorted_place_cells_%dmm_bin.pdf"%distance_bin_size)
