@@ -11,10 +11,43 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
     #fast_output_array = numpy.loadtxt(complete_file, dtype='int', comments='#', delimiter=',', converters=None, skiprows=2, usecols=(0,1,3,5,6,12,15), unpack=False, ndmin=0) 
     
     raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',',skiprows=2)
+    
+    #calculate speed at each data point########################################
+    speed = numpy.zeros(len(raw_behavior),dtype='int')
+    s1 = 0
+    s2 = 0
+    t1 = 0
+    t2 = 0
+    last_line_fill = 0
+    
+    current_speed = 0
+    #current_lick_rate = 0.0    
+    
+    for line in range(0,len(raw_behavior)):
+        #read current distance and time
+        t2 = raw_behavior[line][0]
+        s2 = raw_behavior[line][6]
+        #if there is no change in time, the speed remains unchanged
+        #speed is calculated for every 500 ms window in this case
+        if (t2 - t1 > 500 and s2 > s1):
+            current_speed = ((s2 - s1)*100)/(t2 - t1) #speed is in cm/s
+            t1 = t2
+            s1 = s2
+            for blank_line in range(last_line_fill,line):
+                speed[blank_line] = current_speed
+            last_line_fill = line
+        elif(t2 - t1 > 500 and s2 < s1):
+            t1 = t2
+            s1 = s2          
+        #speed[line] = current_speed
+        #lick_rate[line] = current_lick_rate
+    #calculate speed at each data point########################################
+
+
 
     #uncomment if using raw behavior file
     #extract only the relevant columns from the raw behavior file
-    behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][13],8),dtype='int')
+    behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][13],9),dtype='int')
     i = -1
     
     for row in range(0, len(raw_behavior)):
@@ -32,6 +65,8 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
                 behavior[i][7] = raw_behavior[row][16]   
             else:
                 behavior[i][7] = 1
+            behavior[i][8] = speed[row]              #speed
+
     
     print "Behavior array size is: "
     print behavior.shape

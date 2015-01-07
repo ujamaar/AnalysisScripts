@@ -42,6 +42,9 @@ def extract_details_per_frame (complete_file):
                 output_array[i][7] = input_array[row][16]   
             else:
                 output_array[i][7] = 1
+            
+            #add a line for the speed here
+            #output_array[i][8] = current_speed
        
             # alternative method, but allegedly less efficient: output_array = numpy.vstack([output_array,new_row])
     

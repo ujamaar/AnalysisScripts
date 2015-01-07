@@ -37,9 +37,9 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     print 'Number of environments = %d' %number_of_environments
     #print odor[0:15]
     
-    
+    running_speed = event_data[8,:]
     #delete the desired number of rows/columns in the desired axis
-    event_data = np.delete(event_data, (0,1,2,3,4,5,6,7), axis=0)
+    event_data = np.delete(event_data, (0,1,2,3,4,5,6,7,8), axis=0)
     total_number_of_cells = event_data.shape[0]
     print 'Number of cells = %d' %total_number_of_cells
     total_number_of_frames = event_data.shape[1]
@@ -121,10 +121,16 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     
     event_data_per_bin = np.empty((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='int') 
     
+    #calculate the place field of each cell
+    place_field = np.zeros((total_number_of_cells,number_of_environments),dtype='int')
+    place_field_sd = np.zeros((total_number_of_cells,number_of_environments),dtype='int')
+    
     for cell in range(0,total_number_of_cells):    
         if (cell % 50 == 0):
             print 'Processing cell# %d / %d'%(cell,total_number_of_cells)    
-        
+
+        cell_event_locations = [[] for env in range(number_of_environments)]
+
         #last_frame_bin = 0
         #run thi while loop until all columns have been checked for the cell in this row
         for frame in range(0,total_number_of_frames):
@@ -134,8 +140,38 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
             
             insert_event_in_bin = env_starts_at_this_bin[frame_environment-1] + frame_bin
             
-            current_bin_total_events = event_data_per_bin[cell][insert_event_in_bin] + event_data[cell][frame]
-            event_data_per_bin[cell][insert_event_in_bin] = current_bin_total_events
+            #events get counted and summed in each bin only if the mouse is running above a threshold speed at the moment (e.g. 10cm/s in this case)
+            if (event_data[cell][frame] > 0 and running_speed[frame] > 10):
+                current_bin_total_events = event_data_per_bin[cell][insert_event_in_bin] + event_data[cell][frame]
+                event_data_per_bin[cell][insert_event_in_bin] = current_bin_total_events
+                cell_event_locations[environment[frame]-1].append(distance[frame]) #save the location each "valid" event
+        
+        for env in range (0,place_field.shape[1]):
+            if(len(cell_event_locations[env]) > 0):
+                place_field[cell][env] = np.mean(cell_event_locations[env])
+                place_field_sd[cell][env] = np.std(cell_event_locations[env])
+        
+        if (cell % 50 == 0):
+            print cell_event_locations
+            print place_field[cell]
+            print place_field_sd[cell]
+
+    #save the place field information and the number of events per space bin for each cell
+    place_field_events_each_cell = np.empty((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='int')
+    
+    for cell in range(0,place_field_events_each_cell.shape[0]):
+        
+        for col in range (0,number_of_environments):
+            place_field_events_each_cell[cell][2*col]= place_field[cell][col]
+            place_field_events_each_cell[cell][2*col+1]= place_field_sd[cell][col]
+        
+        for column in range(2*number_of_environments,place_field_events_each_cell.shape[1]):
+            place_field_events_each_cell[cell][column] = event_data_per_bin[cell][column-2*number_of_environments]
+            
+    #np.savetxt(file_path.replace('.csv','_plotted_data.csv'), place_field_events_each_cell, fmt='%i', delimiter=',', newline='\n')            
+#            if (environment[frame]==1 and frame%100==0 and cell%20==0):
+#                print 'reading frame %d for cell %d' %(frame,cell)
+                
             
 #            last_frame_bin = frame_bin
 #            if (frame_lap == 13 and cell == 0 and last_frame_bin != frame_bin):
@@ -169,7 +205,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ###############################################################################
     ################# just a final touch of the magic wand ########################
     ###############################################################################
-    generate_plots(file_path, event_data_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,distance_bin_size )
+    generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,distance_bin_size,place_field)
 
 
 ###############################################################################
@@ -178,26 +214,28 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 ###############################################################################
 ###############################################################################
 #based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
-def generate_plots(file_path, data_array,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,distance_bin_size):
+def generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,distance_bin_size,place_field):
 
     figs = []
 
-    #data_array = complete_data_array[np.argsort(complete_data_array[:,odor],kind='quicksort')]
+    data_array = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,0],kind='quicksort')]
+    np.savetxt(file_path.replace('.csv','_plotted_data_sorted.csv'), data_array, fmt='%i', delimiter=',', newline='\n')   
     
     for env in range (0,number_of_environments):
 
         fig = plt.figure()
         fig.set_rasterized(True)
-        fig.suptitle('Place cell activity for %d cells in environment %d' %(total_number_of_cells,env))
+        fig.suptitle('Place cell activity for %d cells in environment %d' %(total_number_of_cells,env+1))
         #fig.set_size_inches(10,2) 
         
         #odor_response_ticks = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
 
              
         ax = plt.subplot(111)
-        heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]], cmap=plt.cm.Blues) 
+        heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.Blues) 
         color_legend = plt.colorbar(heatmap,aspect=30)
         color_legend.ax.tick_params(labelsize=5) 
+        #ax.invert_yaxis()
         #plt.setp(ax.get_yticklabels(), visible=False)
         ax.set_title('%1.1fm track x %d laps'%(environment_track_lengths[env]/1000.00,laps_in_environment[env]), fontsize='x-small')
         ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
@@ -206,6 +244,7 @@ def generate_plots(file_path, data_array,number_of_environments, laps_in_environ
         #ax.set_xticklabels(row_labels, minor=False,ha='center')
         ax.xaxis.tick_bottom() 
         plt.ylim (0,total_number_of_cells) 
+        plt.gca().invert_yaxis()
 
         plt.setp(ax.get_yticklabels(), visible=True)
         ax.set_ylabel('Cell#')
@@ -218,7 +257,7 @@ def generate_plots(file_path, data_array,number_of_environments, laps_in_environ
         plt.close()
         
     if len(figs) > 0:
-        pdf_name = file_path.replace(".csv","_bin_%dmm.pdf"%distance_bin_size)
+        pdf_name = file_path.replace(".csv","_sorted_place_cells_%dmm_bin.pdf"%distance_bin_size)
         pp = PdfPages(pdf_name)
         for fig in figs:
             pp.savefig(fig,dpi=300)
@@ -244,7 +283,7 @@ def main():
     
     for mouse_data in file_names:
         print 'Analyzing this file: '+ mouse_data
-        if os.path.isfile(mouse_data.replace(".csv","_bin_%dmm.pdf"%distance_bin_size)):
+        if os.path.isfile(mouse_data.replace(".csv","_sorted_place_cells_%dmm_bin.pdf"%distance_bin_size)):
             print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
         else:
             read_data_and_generate_plots(mouse_data,odor_response_time_window, distance_bin_size)
