@@ -62,7 +62,7 @@ print 'Number of environments = %d' %number_of_environments
 
 
 #delete the desired number of rows/columns in the desired axis
-event_data = np.delete(event_data, (0,1,2,3,4,5,6,7), axis=0)
+event_data = np.delete(event_data, (0,1,2,3,4,5,6,7,8), axis=0)
 total_number_of_cells = event_data.shape[0]
 print 'Number of cells = %d' %total_number_of_cells
 total_number_of_frames = event_data.shape[1]

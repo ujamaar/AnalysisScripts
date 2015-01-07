@@ -71,13 +71,15 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         
     #find out the odor sequence for each environment
     #this is to print the correct odor sequence on the x-axis
-    #and find out the track length in each environment
+    #and find out the track length in each environment 
+      
     odor_sequence = np.zeros((number_of_environments*4),dtype='int')
     odor_start_points = np.zeros((number_of_environments*5),dtype='int')   # 5 instead of 4 b/c we want to include the response to rewards as well
     environment_track_lengths = np.zeros((number_of_environments),dtype='int')
     laps_in_environment = np.zeros(number_of_environments,dtype='int')
     env_starts_at_this_bin = np.zeros(number_of_environments+1,dtype='int')
     total_number_distance_bins_in_all_env = 0
+    expansion_factor = 0
     
     for env in range(0,number_of_environments):
         current_odor_position = 0
@@ -104,9 +106,32 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         odor_start_points[env*5 + 3] = 3250*expansion_factor
         odor_start_points[env*5 + 4] = 3750*expansion_factor #this is where the odor starts
         
-
-    print 'The odors were presented in this sequence (4 odors per environment):'
+    print 'The odor numbers (4 odors per environment):'
     print odor_sequence
+
+    odor_sequence_in_letters = [i for i in range(len(odor_sequence))] 
+    #change odor labels from numbers to letters
+    for odor in range (0,len(odor_sequence)):
+        if (odor_sequence[odor] == 1):
+            odor_sequence_in_letters[odor] = 'A'
+        elif (odor_sequence[odor] == 2):
+            odor_sequence_in_letters[odor] = 'B'        
+        elif (odor_sequence[odor] == 3):
+            odor_sequence_in_letters[odor] = 'C'     
+        elif (odor_sequence[odor] == 4):
+            odor_sequence_in_letters[odor] = 'D' 
+        elif (odor_sequence[odor] == 5):
+            odor_sequence_in_letters[odor] = 'E'             
+        elif (odor_sequence[odor] == 6):
+            odor_sequence_in_letters[odor] = 'F' 
+        elif (odor_sequence[odor] == 7):
+            odor_sequence_in_letters[odor] = 'G'
+        else:
+            odor_sequence_in_letters[odor] = '0'            
+ 
+            
+    print 'The odors were presented in this sequence (4 odors per environment):'
+    print odor_sequence_in_letters
     print 'The track lengths in all enviornments are:'
     print environment_track_lengths
     print 'Number of laps in each enviornment:'
@@ -207,7 +232,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ###############################################################################
     ################# just a final touch of the magic wand ########################
     ###############################################################################
-    generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,distance_bin_size,place_field)
+    generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,odor_sequence_in_letters,distance_bin_size,place_field,odor_start_points,expansion_factor)
 
 
 ###############################################################################
@@ -216,59 +241,52 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 ###############################################################################
 ###############################################################################
 #based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
-def generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,distance_bin_size,place_field):
+def generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,odor_sequence,distance_bin_size,place_field,odor_start_points,expansion_factor):
 
     figs = []
     #heatmap_colors = ['Blues','Greens','BuPu','Oranges','Purples','Reds','RdPu','PuBu']
     
     for plot_env in range (0,number_of_environments):
         data_array = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,plot_env*2],kind='quicksort')]
-        np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array, fmt='%i', delimiter=',', newline='\n')   
-        
+        #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array, fmt='%i', delimiter=',', newline='\n')   
+
         for env in range (0,number_of_environments):
             fig = plt.figure()
             fig.set_rasterized(True)
-            fig.suptitle('Place cell activity for %d cells in environment %d' %(total_number_of_cells,env+1))
+            fig.suptitle('Environment %d place cell activity sorted according to env%d' %(env+1,plot_env+1))
             ax = plt.subplot(111)
             
-            if(plot_env%2 == 0):
-                heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.Blues) 
-                color_legend = plt.colorbar(heatmap,aspect=30)
-                color_legend.ax.tick_params(labelsize=5) 
+            #if(plot_env%2 == 0):
+            heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.Blues) 
+            color_legend = plt.colorbar(heatmap,aspect=30)
+            color_legend.ax.tick_params(labelsize=5) 
+            
+            od = odor_sequence[env*4:(env+1)*4]
+            ax.set_title('%1.1fm track x %d laps     Odor sequence:%s%s%s%s'%(environment_track_lengths[env]/1000.00,laps_in_environment[env],od[0],od[1],od[2],od[3]), fontsize='x-small')
+            ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+            ax.xaxis.tick_bottom() 
+            plt.xlim (0,env_starts_at_this_bin[env+1]-env_starts_at_this_bin[env])
+            plt.ylim (0,total_number_of_cells) 
+            plt.gca().invert_yaxis()
+            
+            odor_region_shade = 0.05
+            plt.axvspan(odor_start_points[env*5+0]/distance_bin_size, (odor_start_points[env*5+0]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='b', alpha=odor_region_shade)
+            plt.axvspan(odor_start_points[env*5+1]/distance_bin_size, (odor_start_points[env*5+1]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
+            plt.axvspan(odor_start_points[env*5+2]/distance_bin_size, (odor_start_points[env*5+2]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='g', alpha=odor_region_shade)                    
+            plt.axvspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='m', alpha=odor_region_shade)
+            plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size)
+            #plt.axvspan(odor_start_points[env*5+4]/distance_bin_size, (odor_start_points[env*5+4]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=0.1)
                 
-                #plt.setp(ax.get_yticklabels(), visible=False)
-                ax.set_title('%1.1fm track x %d laps'%(environment_track_lengths[env]/1000.00,laps_in_environment[env]), fontsize='x-small')
-                ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
-                #od = odor_sequence[env*4:(env+1)*4]
-                #row_labels = list('%d%d%d%dR' %(od[0],od[1],od[2],od[3]))
-                #ax.set_xticklabels(row_labels, minor=False,ha='center')
-                ax.xaxis.tick_bottom() 
-                plt.ylim (0,total_number_of_cells) 
-                plt.gca().invert_yaxis()
-        
-                plt.setp(ax.get_yticklabels(), visible=True)
-                ax.set_ylabel('Cell#')
-                fig.add_subplot(ax)
-
-            else:
-                heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.Reds) 
-                color_legend = plt.colorbar(heatmap,aspect=30)
-                color_legend.ax.tick_params(labelsize=5) 
-
-                #plt.setp(ax.get_yticklabels(), visible=False)
-                ax.set_title('%1.1fm track x %d laps'%(environment_track_lengths[env]/1000.00,laps_in_environment[env]), fontsize='x-small')
-                ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
-                #od = odor_sequence[env*4:(env+1)*4]
-                #row_labels = list('%d%d%d%dR' %(od[0],od[1],od[2],od[3]))
-                #ax.set_xticklabels(row_labels, minor=False,ha='center')
-                ax.xaxis.tick_bottom() 
-                plt.ylim (0,total_number_of_cells) 
-                plt.gca().invert_yaxis()
-        
-                plt.setp(ax.get_yticklabels(), visible=True)
-                ax.set_ylabel('Cell#')
-                fig.add_subplot(ax)
-        
+            plt.setp(ax.get_yticklabels(), visible=True)
+            ax.set_ylabel('Cell#')
+            fig.add_subplot(ax)
+            
+            if(plot_env%2 == 0):
+                ax.spines['bottom'].set_color('red')
+                ax.spines['top'].set_color('red') 
+                ax.spines['right'].set_color('red')
+                ax.spines['left'].set_color('red')
+       
             #can be commented out to stop showing all plots in the console
             plt.show()
             figs.append(fig)
@@ -278,7 +296,7 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
         pdf_name = file_path.replace(".csv","_sorted_place_cells_%dmm_bin.pdf"%distance_bin_size)
         pp = PdfPages(pdf_name)
         for fig in figs:
-            pp.savefig(fig,dpi=300)
+            pp.savefig(fig,dpi=300,edgecolor='r')
         pp.close() 
 
 

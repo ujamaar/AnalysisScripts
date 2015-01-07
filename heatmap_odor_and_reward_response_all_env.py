@@ -44,7 +44,7 @@ def read_data_and_generate_plots(file_path):
     
     
     #delete the desired number of rows/columns in the desired axis
-    event_data = np.delete(event_data, (0,1,2,3,4,5,6,7), axis=0)
+    event_data = np.delete(event_data, (0,1,2,3,4,5,6,7,8), axis=0)
     total_number_of_cells = event_data.shape[0]
     print 'Number of cells = %d' %total_number_of_cells
     total_number_of_frames = event_data.shape[1]
@@ -74,6 +74,7 @@ def read_data_and_generate_plots(file_path):
     #find out the odor sequence for each environment
     #this is to print the correct odor sequence on the x-axis
     #and find out the track length in each environment
+    #odor_sequence = [i for i in range(number_of_environments*4)]       
     odor_sequence = np.zeros((number_of_environments*4),dtype='int')
     odor_start_points = np.zeros((number_of_environments*5),dtype='int')   # 5 instead of 4 b/c we want to include the response to rewards as well
     environment_track_lengths = np.zeros((number_of_environments),dtype='int')
@@ -103,8 +104,28 @@ def read_data_and_generate_plots(file_path):
         odor_start_points[env*5 + 3] = 3250*expansion_factor
         odor_start_points[env*5 + 4] = 3750*expansion_factor #this is where the odor starts
 
+    odor_sequence_in_letters = [i for i in range(len(odor_sequence))] 
+    #change odor labels from numbers to letters
+    for odor in range (0,len(odor_sequence)):
+        if (odor_sequence[odor] == 1):
+            odor_sequence_in_letters[odor] = 'A'
+        elif (odor_sequence[odor] == 2):
+            odor_sequence_in_letters[odor] = 'B'        
+        elif (odor_sequence[odor] == 3):
+            odor_sequence_in_letters[odor] = 'C'     
+        elif (odor_sequence[odor] == 4):
+            odor_sequence_in_letters[odor] = 'D' 
+        elif (odor_sequence[odor] == 5):
+            odor_sequence_in_letters[odor] = 'E'             
+        elif (odor_sequence[odor] == 6):
+            odor_sequence_in_letters[odor] = 'F' 
+        elif (odor_sequence[odor] == 7):
+            odor_sequence_in_letters[odor] = 'G'
+        else:
+            odor_sequence_in_letters[odor] = '0'    
+
     print 'The odors were presented in this sequence (4 odors per environment):'
-    print odor_sequence
+    print odor_sequence_in_letters
     print 'The track lengths in all enviornments are:'
     print environment_track_lengths
     print 'Number of laps in each enviornment:'
@@ -219,8 +240,8 @@ def read_data_and_generate_plots(file_path):
                 plt.setp(ax.get_yticklabels(), visible=False)
                 ax.set_title('%1.1fm x %d laps'%(environment_track_lengths[env]/1000.00,laps_in_environment[env]), fontsize='x-small')
                 ax.set_xlabel('Env%d odors'%(env+1),fontsize='x-small')
-                od = odor_sequence[env*4:(env+1)*4]
-                row_labels = list('%d%d%d%dR' %(od[0],od[1],od[2],od[3]))
+                od = odor_sequence_in_letters[env*4:(env+1)*4]
+                row_labels = list('%s%s%s%sR' %(od[0],od[1],od[2],od[3]))
                 ax.set_xticklabels(row_labels, minor=False,ha='center')
                 ax.xaxis.tick_bottom() 
                 plt.ylim (0,total_number_of_cells) 
