@@ -1,6 +1,7 @@
 #http://stackoverflow.com/questions/27578648/customizing-colors-in-matplotlib-heatmap
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 import os
@@ -77,6 +78,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     odor_start_points = np.zeros((number_of_environments*5),dtype='int')   # 5 instead of 4 b/c we want to include the response to rewards as well
     environment_track_lengths = np.zeros((number_of_environments),dtype='int')
     laps_in_environment = np.zeros(number_of_environments,dtype='int')
+    bins_in_environment = np.zeros(number_of_environments,dtype='int')
     env_starts_at_this_bin = np.zeros(number_of_environments+1,dtype='int')
     total_number_distance_bins_in_all_env = 0
     expansion_factor = 0
@@ -97,7 +99,8 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         expansion_factor = (track_length_in_this_env / 4500) + 1
         environment_track_lengths[env] = expansion_factor*4500
         laps_in_environment[env] = environment_transitions[env+1]-environment_transitions[env]
-        env_starts_at_this_bin[env+1] = env_starts_at_this_bin[env] + ((expansion_factor*4500)/distance_bin_size)
+        bins_in_environment[env] = ((expansion_factor*4500)/distance_bin_size)
+        env_starts_at_this_bin[env+1] = env_starts_at_this_bin[env] + bins_in_environment[env]
         total_number_distance_bins_in_all_env = total_number_distance_bins_in_all_env + ((expansion_factor*4500)/distance_bin_size)
         
         odor_start_points[env*5 + 0] =  250*expansion_factor
@@ -136,6 +139,8 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     print environment_track_lengths
     print 'Number of laps in each enviornment:'
     print laps_in_environment
+    print 'Number of bins in each enviornment:'    
+    print bins_in_environment
     print 'The odors start at these distance points:'
     print odor_start_points
     print 'New environment starts at bin:'
@@ -185,8 +190,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
             print place_field[cell]
             print place_field_sd[cell]
 
-    #np.savetxt(file_path.replace('.csv','_event_data.csv'), event_data, fmt='%i', delimiter=',', newline='\n') 
-    
+    #np.savetxt(file_path.replace('.csv','_event_data.csv'), event_data, fmt='%i', delimiter=',', newline='\n')     
     #np.savetxt(file_path.replace('.csv','_event_data_per_bin.csv'), event_data_per_bin, fmt='%i', delimiter=',', newline='\n') 
 
     #save the place field information and the number of events per space bin for each cell
@@ -204,7 +208,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     #np.savetxt(file_path.replace('.csv','_plotted_data.csv'), place_field_events_each_cell, fmt='%i', delimiter=',', newline='\n')            
 
     #now send the data for plotting:
-    generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,odor_sequence_in_letters,distance_bin_size,place_field,odor_start_points,expansion_factor,speed_threshold)
+    generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,environment_track_lengths,odor_sequence_in_letters,distance_bin_size,place_field,odor_start_points,expansion_factor,speed_threshold,total_number_distance_bins_in_all_env)
 
 
 ###############################################################################
@@ -213,7 +217,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 ###############################################################################
 ###############################################################################
 #based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
-def generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, env_starts_at_this_bin,environment_track_lengths,odor_sequence,distance_bin_size,place_field,odor_start_points,expansion_factor,speed_threshold):
+def generate_plots(file_path, place_field_events_each_cell,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,environment_track_lengths,odor_sequence,distance_bin_size,place_field,odor_start_points,expansion_factor,speed_threshold,total_number_distance_bins_in_all_env):
 
     figs = []
     #heatmap_colors = ['Blues','Greens','BuPu','Oranges','Purples','Reds','RdPu','PuBu']
@@ -222,37 +226,34 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
         data_array = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,plot_env*2],kind='quicksort')]
         #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array, fmt='%i', delimiter=',', newline='\n')   
 
+
         for env in range (0,number_of_environments):
             fig = plt.figure()
+            fig.subplots_adjust(hspace=0)
             fig.set_rasterized(True)
             fig.suptitle('Environment %d place cell activity sorted according to environment %d' %(env+1,plot_env+1))
-            ax = plt.subplot(111)
+
+            ax  = plt.subplot2grid((4,4), (0,0), rowspan=3,colspan=4)
 
             od = odor_sequence[env*4:(env+1)*4]            
             sort_od = odor_sequence[plot_env*4:(plot_env+1)*4] 
 
             if(plot_env%2 == 0):
-                plt.figtext(0.2 ,0.9, "%s"%od[0], fontsize='large', color='r', ha ='left')
-                plt.figtext(0.33,0.9, "%s"%od[1], fontsize='large', color='r', ha ='left')
-                plt.figtext(0.47,0.9, "%s"%od[2], fontsize='large', color='r', ha ='left')            
-                plt.figtext(0.6 ,0.9, "%s"%od[3], fontsize='large', color='r', ha ='left')
+                plt.figtext(0.2 ,0.91, "%s"%od[0], fontsize='large', color='r', ha ='left')
+                plt.figtext(0.33,0.91, "%s"%od[1], fontsize='large', color='r', ha ='left')
+                plt.figtext(0.47,0.91, "%s"%od[2], fontsize='large', color='r', ha ='left')            
+                plt.figtext(0.6 ,0.91, "%s"%od[3], fontsize='large', color='r', ha ='left')
 
-                plt.figtext(0.85,0.85, "%s%s%s%s"%(od[0],od[1],od[2],od[3]), fontsize='large', color='r', ha ='left')
-                plt.figtext(0.85,0.8, "Sorted by:",                         fontsize='small', color='k', ha ='left') 
-                plt.figtext(0.85,0.75, "%s%s%s%s"%(sort_od[0],sort_od[1],sort_od[2],sort_od[3]), fontsize='large', color='r', ha ='left')
+                plt.figtext(0.85,0.9, "%s%s%s%s"%(od[0],od[1],od[2],od[3]), fontsize='large', color='r', ha ='left')
+                plt.figtext(0.85,0.85, "Sorted by:",                         fontsize='small', color='k', ha ='left') 
+                plt.figtext(0.85,0.8, "%s%s%s%s"%(sort_od[0],sort_od[1],sort_od[2],sort_od[3]), fontsize='large', color='r', ha ='left')
     
-                plt.figtext(0.85,0.6, "Environments:",               fontsize='small', color='k', ha ='left')
-                plt.figtext(0.85,0.55,"%d" %number_of_environments,  fontsize='large', color='r', ha ='left') 
-                plt.figtext(0.85,0.5, "Bin size:",                   fontsize='small', color='k', ha ='left')            
-                plt.figtext(0.85,0.45,"%dmm" %distance_bin_size,     fontsize='large', color='r', ha ='left')            
-                plt.figtext(0.85,0.4, "Track:",                      fontsize='small', color='k', ha ='left')
-                plt.figtext(0.85,0.35,"%1.1fm" %(environment_track_lengths[env]/1000.0), fontsize='large', color='r', ha ='left')
-                plt.figtext(0.85,0.3, "Laps:",                       fontsize='small', color='k', ha ='left')
-                plt.figtext(0.85,0.25,"%d" %laps_in_environment[env],fontsize='large', color='r', ha ='left')
-                plt.figtext(0.85,0.2, "Cells:",                      fontsize='small', color='k', ha ='left')
-                plt.figtext(0.85,0.15,"%d" %total_number_of_cells,   fontsize='large', color='r', ha ='left')
-                plt.figtext(0.85,0.1, "Speed threshold:",                      fontsize='x-small', color='k', ha ='left')
-                plt.figtext(0.85,0.07,"%dcm/s" %speed_threshold,   fontsize='x-small', color='r', ha ='left')
+                plt.figtext(0.85,0.7,"Environments: %d" %number_of_environments,               fontsize='x-small', color='r', ha ='left')           
+                plt.figtext(0.85,0.65,"Bin size: %dmm" %distance_bin_size,                     fontsize='x-small', color='r', ha ='left')            
+                plt.figtext(0.85,0.6,"Track: %1.1fm" %(environment_track_lengths[env]/1000.0), fontsize='x-small', color='r', ha ='left')
+                plt.figtext(0.85,0.55,"Laps: %d" %laps_in_environment[env],                    fontsize='x-small', color='r', ha ='left')
+                plt.figtext(0.85,0.5,"Cells: %d" %total_number_of_cells,                       fontsize='x-small', color='r', ha ='left')
+                plt.figtext(0.85,0.45,"min speed: %dcm/s" %speed_threshold,                    fontsize='x-small', color='r', ha ='left')
 
                 ax.spines['bottom'].set_color('red')
                 ax.spines['top'].set_color('red') 
@@ -260,43 +261,51 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
                 ax.spines['left'].set_color('red')
             #change label colors to blue in alternate environments
             else:
-                plt.figtext(0.2 ,0.9, "%s"%od[0], fontsize='large', color='b', ha ='left')
-                plt.figtext(0.33,0.9, "%s"%od[1], fontsize='large', color='b', ha ='left')
-                plt.figtext(0.47,0.9, "%s"%od[2], fontsize='large', color='b', ha ='left')            
-                plt.figtext(0.6 ,0.9, "%s"%od[3], fontsize='large', color='b', ha ='left')
+                plt.figtext(0.2 ,0.91, "%s"%od[0], fontsize='large', color='b', ha ='left')
+                plt.figtext(0.33,0.91, "%s"%od[1], fontsize='large', color='b', ha ='left')
+                plt.figtext(0.47,0.91, "%s"%od[2], fontsize='large', color='b', ha ='left')            
+                plt.figtext(0.6 ,0.91, "%s"%od[3], fontsize='large', color='b', ha ='left')
 
 
                 plt.figtext(0.85,0.85, "%s%s%s%s"%(od[0],od[1],od[2],od[3]), fontsize='large', color='b', ha ='left')
                 plt.figtext(0.85,0.8, "Sorted by:",                         fontsize='small', color='k', ha ='left') 
                 plt.figtext(0.85,0.75, "%s%s%s%s"%(sort_od[0],sort_od[1],sort_od[2],sort_od[3]), fontsize='large', color='b', ha ='left')
     
-                plt.figtext(0.85,0.6, "Environments:",               fontsize='small', color='k', ha ='left')
-                plt.figtext(0.85,0.55,"%d" %number_of_environments,  fontsize='large', color='b', ha ='left') 
-                plt.figtext(0.85,0.5, "Bin size:",                   fontsize='small', color='k', ha ='left')            
-                plt.figtext(0.85,0.45,"%dmm" %distance_bin_size,     fontsize='large', color='b', ha ='left')            
-                plt.figtext(0.85,0.4, "Track:",                      fontsize='small', color='k', ha ='left')
-                plt.figtext(0.85,0.35,"%1.1fm" %(environment_track_lengths[env]/1000.0), fontsize='large', color='b', ha ='left')
-                plt.figtext(0.85,0.3, "Laps:",                       fontsize='small', color='k', ha ='left')
-                plt.figtext(0.85,0.25,"%d" %laps_in_environment[env],fontsize='large', color='b', ha ='left')
-                plt.figtext(0.85,0.2, "Cells:",                      fontsize='small', color='k', ha ='left')
-                plt.figtext(0.85,0.15,"%d" %total_number_of_cells,   fontsize='large', color='b', ha ='left')
-                plt.figtext(0.85,0.1, "Speed threshold:",                      fontsize='x-small', color='k', ha ='left')
-                plt.figtext(0.85,0.07,"%dcm/s" %speed_threshold,   fontsize='x-small', color='b', ha ='left')
+                plt.figtext(0.85,0.7,"Environments: %d" %number_of_environments,               fontsize='x-small', color='b', ha ='left')           
+                plt.figtext(0.85,0.65,"Bin size: %dmm" %distance_bin_size,                     fontsize='x-small', color='b', ha ='left')            
+                plt.figtext(0.85,0.6,"Track: %1.1fm" %(environment_track_lengths[env]/1000.0), fontsize='x-small', color='b', ha ='left')
+                plt.figtext(0.85,0.55,"Laps: %d" %laps_in_environment[env],                    fontsize='x-small', color='b', ha ='left')
+                plt.figtext(0.85,0.5,"Cells: %d" %total_number_of_cells,                       fontsize='x-small', color='b', ha ='left')
+                plt.figtext(0.85,0.45,"min speed: %dcm/s" %speed_threshold,                    fontsize='x-small', color='b', ha ='left')
 
                 ax.spines['bottom'].set_color('blue')
                 ax.spines['top'].set_color('blue') 
                 ax.spines['right'].set_color('blue')
-                ax.spines['left'].set_color('blue')             
+                ax.spines['left'].set_color('blue')         
+
+
+            #normalize events for each cells (on scale from 0 to 100)
+            data_array_of_summed_events = data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments]
+            normalized_data_array = np.zeros((total_number_of_cells,bins_in_environment[env]),dtype='int')
+        
+            for cell in range(0,normalized_data_array.shape[0]):    
+                max_number_of_events = np.max(data_array_of_summed_events[cell])
+                for data_bin in range(0,normalized_data_array.shape[1]):
+                    if(max_number_of_events > 0):
+                        normalized_data_array[cell][data_bin] = (data_array_of_summed_events[cell][data_bin] * 100)/max_number_of_events #normalize from 0 to 100
+
 
             #if(plot_env%2 == 0):
-            heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.Blues) 
+            heatmap = ax.pcolor(normalized_data_array, cmap=plt.cm.Blues) 
             color_legend = plt.colorbar(heatmap,aspect=30)
             color_legend.ax.tick_params(labelsize=5) 
             
             #ax.set_title('%1.1fm track x %d laps     Odor sequence:%s%s%s%s'%(environment_track_lengths[env]/1000.00,laps_in_environment[env],od[0],od[1],od[2],od[3]), fontsize='x-small')
-            ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+            #ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
             ax.xaxis.tick_bottom() 
-            plt.xlim (0,env_starts_at_this_bin[env+1]-env_starts_at_this_bin[env])
+            plt.setp(ax.get_xticklabels(),visible=False)
+            
+            plt.xlim (0,bins_in_environment[env])
             plt.ylim (0,total_number_of_cells) 
             plt.gca().invert_yaxis()
             
@@ -320,6 +329,35 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
             plt.setp(ax.get_yticklabels(), visible=True)
             ax.set_ylabel('Cell#')
             fig.add_subplot(ax)
+#            ax.clear()  # clear drawing axes
+                            
+            histogram_heights = np.sum(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], axis=0)
+            #np.savetxt(file_path.replace('.csv','_histogram_heights.csv'), histogram_heights, fmt='%i', delimiter=',', newline='\n')  
+            
+            ax1 = plt.subplot2grid((4,4), (3,0), rowspan=1,colspan=4,sharex=ax)
+            ax1.bar(range(bins_in_environment[env]),histogram_heights, width=1, color="green",linewidth=0)
+            ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+            ax1.set_ylabel('Events',fontsize='xx-small')
+            
+            histogram_tick_mark = ((np.max(histogram_heights)/2)/10 +1)*5
+            print histogram_tick_mark
+            majorLocator   = MultipleLocator(histogram_tick_mark)
+            majorFormatter = FormatStrFormatter('%d')
+            minorLocator   = MultipleLocator(histogram_tick_mark/2)
+            
+            ax1.yaxis.set_major_locator(majorLocator)
+            ax1.yaxis.set_major_formatter(majorFormatter)
+            ax1.yaxis.set_minor_locator(minorLocator)
+            
+            color_legend = plt.colorbar(heatmap,aspect=30)
+            fig.delaxes(fig.axes[3]) #here axis 0 = plot in ax, 1 = colorbar in ax, 2 = plot in ax1, 3 = heatmap in ax1
+            plt.axvspan(odor_start_points[env*5+0]/distance_bin_size, (odor_start_points[env*5+0]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='b', alpha=odor_region_shade)
+            plt.axvspan(odor_start_points[env*5+1]/distance_bin_size, (odor_start_points[env*5+1]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
+            plt.axvspan(odor_start_points[env*5+2]/distance_bin_size, (odor_start_points[env*5+2]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='g', alpha=odor_region_shade)                    
+            plt.axvspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='m', alpha=odor_region_shade)
+            fig.add_subplot(ax1)
+
+
      
             #can be commented out to stop showing all plots in the console
             plt.show()
