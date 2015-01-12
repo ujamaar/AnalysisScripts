@@ -157,17 +157,14 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     event_data_per_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
     
     #calculate the place field of each cell
-#    place_field = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
-#    place_field_sd = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
-
-    env_max_response_column = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
-    env_max_response = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
+    #place_field = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
+    #place_field_sd = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
     
     for cell in range(0,total_number_of_cells):    
         if (cell % 50 == 0):
             print 'Processing cell# %d / %d'%(cell,total_number_of_cells)    
 
-#        cell_event_locations = [[] for env in range(number_of_environments)]
+        #cell_event_locations = [[] for env in range(number_of_environments)]
 
         #last_frame_bin = 0
         #run thi while loop until all columns have been checked for the cell in this row
@@ -182,42 +179,61 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
             if (event_data[cell][frame] > 0 and running_speed[frame] > speed_threshold):
                 current_bin_total_events = event_data_per_bin[cell][insert_event_in_bin] + event_data[cell][frame]
                 event_data_per_bin[cell][insert_event_in_bin] = current_bin_total_events
-#                cell_event_locations[environment[frame]-1].append(distance[frame]) #save the location of each "valid" event
+                #cell_event_locations[environment[frame]-1].append(distance[frame]) #save the location of each "valid" event
+
+    #np.savetxt(file_path.replace('.csv','_event_data.csv'), event_data_per_bin, fmt='%i', delimiter=',', newline='\n') 
+
+    #apply a one dimensional gaussian filter to event data for each cell:
+    gaussian_filtered_event_data = ndimage.gaussian_filter1d(event_data_per_bin,sigma=gaussian_filter_sigma,axis=1)
+    #np.savetxt(file_path.replace('.csv','_gaussian_filter_event_data_per_bin.csv'), gaussian_filtered_event_data, fmt='%f', delimiter=',', newline='\n') 
+
+    place_data_each_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='float')
+    
+    for cell in range(0,total_number_of_cells): 
+        for env in range(0,number_of_environments):
+            env_max_response_column = 0
+            env_max_response = 0.00
+            for env_bin in range(env_starts_at_this_bin[env],env_starts_at_this_bin[env+1]):
+                if (gaussian_filtered_event_data[cell][env_bin] > env_max_response):
+                    env_max_response_column = env_bin
+                    env_max_response = gaussian_filtered_event_data[cell][env_bin] 
+            if(env_max_response_column == 0 and env_max_response == 0.00):
+                place_data_each_cell[cell][2*env]= -1
+                place_data_each_cell[cell][2*env+1]= env_max_response
+            else:
+                place_data_each_cell[cell][2*env]= env_max_response_column
+                place_data_each_cell[cell][2*env+1]= env_max_response                
+               
+        for column in range(2*number_of_environments,place_data_each_cell.shape[1]):
+            place_data_each_cell[cell][column] = gaussian_filtered_event_data[cell][column-2*number_of_environments]
+
        
-        for env in range (0,number_of_environments):
+#        for env in range (0,place_field.shape[1]):
 #            if(len(cell_event_locations[env]) > 0):
 #                place_field[cell][env] = np.mean(cell_event_locations[env])
 #                place_field_sd[cell][env] = np.std(cell_event_locations[env])
-                
-            for env_bin in range(env_starts_at_this_bin[env],env_starts_at_this_bin[env+1]):
-                if (event_data_per_bin[cell][env_bin] > env_max_response[cell][env]):
-                    env_max_response_column[cell][env] = env_bin
-                    env_max_response[cell][env] = event_data_per_bin[cell][env_bin] 
-        
-        if (cell % 50 == 0):
+#        
+#        if (cell % 50 == 0):
 #            print cell_event_locations
 #            print place_field[cell]
 #            print place_field_sd[cell]
-
-            print env_max_response_column[cell]
-            print env_max_response[cell]
-
-
-
-    #save the place field information and the number of events per space bin for each cell
-    place_data_each_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='int')
-    
-    for cell in range(0,place_data_each_cell.shape[0]):
-        
-        for col in range (0,number_of_environments):
+#
+#    #np.savetxt(file_path.replace('.csv','_event_data.csv'), event_data, fmt='%i', delimiter=',', newline='\n')     
+#    np.savetxt(file_path.replace('.csv','_event_data_per_bin.csv'), event_data_per_bin, fmt='%f', delimiter=',', newline='\n')         
+#    event_data_per_bin_filtered = ndimage.gaussian_filter1d(event_data_per_bin,sigma=2,axis=1)
+#    np.savetxt(file_path.replace('.csv','_filtered_event_data_per_bin.csv'), event_data_per_bin_filtered, fmt='%f', delimiter=',', newline='\n') 
+#
+#    #save the place field information and the number of events per space bin for each cell
+#    place_data_each_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='int')
+#    
+#    for cell in range(0,place_data_each_cell.shape[0]):
+#        
+#        for col in range (0,number_of_environments):
 #            place_data_each_cell[cell][2*col]= place_field[cell][col]
 #            place_data_each_cell[cell][2*col+1]= place_field_sd[cell][col]
-
-            place_data_each_cell[cell][2*col]= env_max_response_column[cell][col]
-            place_data_each_cell[cell][2*col+1]= env_max_response[cell][col]
-        
-        for column in range(2*number_of_environments,place_data_each_cell.shape[1]):
-            place_data_each_cell[cell][column] = event_data_per_bin[cell][column-2*number_of_environments]
+#        
+#        for column in range(2*number_of_environments,place_data_each_cell.shape[1]):
+#            place_data_each_cell[cell][column] = event_data_per_bin_filtered[cell][column-2*number_of_environments]
 
             
     #np.savetxt(file_path.replace('.csv','_plotted_data.csv'), place_data_each_cell, fmt='%f', delimiter=',', newline='\n')            
@@ -301,14 +317,14 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
 
 
             #normalize events for each cells (on scale from 0 to 100)
-            data_array_of_summed_events = data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments]
-            normalized_data_array = np.zeros((total_number_of_cells,bins_in_environment[env]),dtype='float')
-        
-            for cell in range(0,normalized_data_array.shape[0]):    
-                max_number_of_events = np.max(data_array_of_summed_events[cell])
-                for data_bin in range(0,normalized_data_array.shape[1]):
-                    if(max_number_of_events > 0):
-                        normalized_data_array[cell][data_bin] = (data_array_of_summed_events[cell][data_bin] * 100)/max_number_of_events #normalize from 0 to 100
+#            data_array_of_summed_events = data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments]
+#            normalized_data_array = np.zeros((total_number_of_cells,bins_in_environment[env]),dtype='float')
+#        
+#            for cell in range(0,normalized_data_array.shape[0]):    
+#                max_number_of_events = np.max(data_array_of_summed_events[cell])
+#                for data_bin in range(0,normalized_data_array.shape[1]):
+#                    if(max_number_of_events > 0):
+#                        normalized_data_array[cell][data_bin] = (data_array_of_summed_events[cell][data_bin] * 100)/max_number_of_events #normalize from 0 to 100
 
 
             #if(plot_env%2 == 0):
