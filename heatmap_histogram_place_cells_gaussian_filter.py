@@ -344,7 +344,7 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
             
             first_cell_with_events = -1
             cell = 0
-            while(first_cell_with_events < 0):
+            while(first_cell_with_events < 0 and cell < total_number_of_cells):
                 if ((data_array[cell][1+plot_env*2]) > 0):
                     first_cell_with_events = cell
                 cell = cell+1
