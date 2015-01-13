@@ -1,7 +1,7 @@
 #http://stackoverflow.com/questions/27578648/customizing-colors-in-matplotlib-heatmap
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+#from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 import os
@@ -155,7 +155,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ###############################################################################
     
     event_data_per_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
-    
+    #average_speed_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')     
     #calculate the place field of each cell
     #place_field = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
     #place_field_sd = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
@@ -181,13 +181,24 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                 event_data_per_bin[cell][insert_event_in_bin] = current_bin_total_events
                 #cell_event_locations[environment[frame]-1].append(distance[frame]) #save the location of each "valid" event
 
-    #np.savetxt(file_path.replace('.csv','_event_data.csv'), event_data_per_bin, fmt='%i', delimiter=',', newline='\n') 
+    #np.savetxt(file_path.replace('.csv','_event_data.csv'), event_data_per_bin, fmt='%1.2f', delimiter=',', newline='\n') 
+
+    # for each bin, calculate the number of events per lap
+    events_per_lap_per_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
+    for cell in range(0,total_number_of_cells): 
+        for env in range(0,number_of_environments):
+            laps_in_this_env = laps_in_environment[env] * 1.00
+            for env_bin in range(env_starts_at_this_bin[env],env_starts_at_this_bin[env+1]):
+                events_per_lap_per_bin[cell][env_bin] = event_data_per_bin[cell][env_bin] / laps_in_this_env
+
+    #np.savetxt(file_path.replace('.csv','_events_per_lap_per_bin.csv'), events_per_lap_per_bin, fmt='%1.2f', delimiter=',', newline='\n')
 
     #apply a one dimensional gaussian filter to event data for each cell:
-    gaussian_filtered_event_data = ndimage.gaussian_filter1d(event_data_per_bin,sigma=gaussian_filter_sigma,axis=1)
+    gaussian_filtered_event_data = ndimage.gaussian_filter1d(events_per_lap_per_bin,sigma=gaussian_filter_sigma,axis=1)
     #np.savetxt(file_path.replace('.csv','_gaussian_filter_event_data_per_bin.csv'), gaussian_filtered_event_data, fmt='%f', delimiter=',', newline='\n') 
 
     place_data_each_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='float')
+    
     
     for cell in range(0,total_number_of_cells): 
         for env in range(0,number_of_environments):
@@ -251,12 +262,25 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
 
     figs = []
     self_aligned_to_self_figs = []
+
+    #to plot the hitogram of summed events
+    all_histogram_heights = np.sum(place_field_events_each_cell[:,2*number_of_environments:place_field_events_each_cell.shape[1]], axis=0)
+
+#    histogram_tick_mark = 1
+#    if(np.max(all_histogram_heights) > 4):
+#        histogram_tick_mark = (np.max(all_histogram_heights)/4)+1
+#    print histogram_tick_mark
+#    majorLocator   = MultipleLocator(histogram_tick_mark)
+#    majorFormatter = FormatStrFormatter('%d')
+#    #minorLocator   = MultipleLocator(histogram_tick_mark/2)
+
     #heatmap_colors = ['Blues','Greens','BuPu','Oranges','Purples','Reds','RdPu','PuBu']
     
     for plot_env in range (0,number_of_environments):
         data_array = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,plot_env*2],kind='quicksort')]
         #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array, fmt='%f', delimiter=',', newline='\n')   
 
+        #for env in range (plot_env,plot_env+1):
         for env in range (0,number_of_environments):
             fig = plt.figure()
             fig.subplots_adjust(hspace=0)
@@ -329,7 +353,7 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
 
             #if(plot_env%2 == 0):
             #heatmap = ax.pcolor(normalized_data_array, cmap=plt.cm.Blues) 
-            heatmap = ax.pcolor(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.Blues) 
+            heatmap = ax.pcolormesh(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.jet,vmin=0.00,vmax=0.10) 
             color_legend = plt.colorbar(heatmap,aspect=30)
             color_legend.ax.tick_params(labelsize=5) 
             
@@ -350,13 +374,16 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
                 cell = cell+1
             plt.axhline(y=first_cell_with_events, linewidth=0.1, color='k')
             
-            #draw colored bands for odor regions
-            odor_region_shade = 0.05
-            plt.axvspan(odor_start_points[env*5+0]/distance_bin_size, (odor_start_points[env*5+0]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='b', alpha=odor_region_shade)
-            plt.axvspan(odor_start_points[env*5+1]/distance_bin_size, (odor_start_points[env*5+1]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
-            plt.axvspan(odor_start_points[env*5+2]/distance_bin_size, (odor_start_points[env*5+2]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='g', alpha=odor_region_shade)                    
-            plt.axvspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='m', alpha=odor_region_shade)
-            plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size, linewidth=0.1, color='b')
+            #draw white lines to mark odor regions
+            plt.axvline(x=odor_start_points[env*5+0]/distance_bin_size, linewidth=0.1, color='w')
+            plt.axvline(x=(odor_start_points[env*5+0]+odor_start_points[env*5+0]*3)/distance_bin_size, linewidth=0.1, color='w')
+            plt.axvline(x=odor_start_points[env*5+1]/distance_bin_size, linewidth=0.1, color='w')
+            plt.axvline(x=(odor_start_points[env*5+1]+odor_start_points[env*5+0]*3)/distance_bin_size, linewidth=0.1, color='w')
+            plt.axvline(x=odor_start_points[env*5+2]/distance_bin_size, linewidth=0.1, color='w')
+            plt.axvline(x=(odor_start_points[env*5+2]+odor_start_points[env*5+0]*3)/distance_bin_size, linewidth=0.1, color='w')
+            plt.axvline(x=odor_start_points[env*5+3]/distance_bin_size, linewidth=0.1, color='w')
+            plt.axvline(x=(odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, linewidth=0.1, color='w')
+            plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size, linewidth=0.1, color='w')
             #plt.axvspan(odor_start_points[env*5+4]/distance_bin_size, (odor_start_points[env*5+4]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=0.1)
                 
             plt.setp(ax.get_yticklabels(), visible=True)
@@ -364,32 +391,30 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
             fig.add_subplot(ax)
 #            ax.clear()  # clear drawing axes
                             
-            histogram_heights = np.sum(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], axis=0)
+            histogram_heights = all_histogram_heights[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]]
+            #print histogram_heights
             #np.savetxt(file_path.replace('.csv','_histogram_heights.csv'), histogram_heights, fmt='%i', delimiter=',', newline='\n')  
             
             ax1 = plt.subplot2grid((4,4), (3,0), rowspan=1,colspan=4,sharex=ax)
             ax1.bar(range(bins_in_environment[env]),histogram_heights, width=1, color="green",linewidth=0)
             ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
-            ax1.set_ylabel('Events',fontsize='xx-small')
-            
-            histogram_tick_mark = 1
-            if(np.max(histogram_heights) > 4):
-                histogram_tick_mark = (np.max(histogram_heights)/4)+1
-            print histogram_tick_mark
-            majorLocator   = MultipleLocator(histogram_tick_mark)
-            majorFormatter = FormatStrFormatter('%d')
-            #minorLocator   = MultipleLocator(histogram_tick_mark/2)
-            
-            ax1.yaxis.set_major_locator(majorLocator)
-            ax1.yaxis.set_major_formatter(majorFormatter)
-            #ax1.yaxis.set_minor_locator(minorLocator)
+            ax1.set_ylabel('event proportion',fontsize='xx-small')
+            ax1.set_ylim(0,max(all_histogram_heights))
+            plt.setp(ax1.get_yticklabels(),visible=False)            
+
+#            ax1.yaxis.set_major_locator(majorLocator)
+#            ax1.yaxis.set_major_formatter(majorFormatter)
+#            #ax1.yaxis.set_minor_locator(minorLocator)
             
             color_legend = plt.colorbar(heatmap,aspect=30)
             fig.delaxes(fig.axes[3]) #here axis 0 = plot in ax, 1 = colorbar in ax, 2 = plot in ax1, 3 = heatmap in ax1
+            #draw colored bands for odor regions
+            odor_region_shade = 0.1
             plt.axvspan(odor_start_points[env*5+0]/distance_bin_size, (odor_start_points[env*5+0]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='b', alpha=odor_region_shade)
             plt.axvspan(odor_start_points[env*5+1]/distance_bin_size, (odor_start_points[env*5+1]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
             plt.axvspan(odor_start_points[env*5+2]/distance_bin_size, (odor_start_points[env*5+2]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='g', alpha=odor_region_shade)                    
             plt.axvspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='m', alpha=odor_region_shade)
+            plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size, linewidth=0.1, color='b')
             fig.add_subplot(ax1)
 
 
@@ -404,16 +429,18 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
     if len(figs) > 0:
         pdf_name = file_path.replace(".csv","_sorted_place_cells.pdf")
         pp = PdfPages(pdf_name)
+        for fig in self_aligned_to_self_figs:
+            pp.savefig(fig,dpi=300,edgecolor='r')
         for fig in figs:
             pp.savefig(fig,dpi=300,edgecolor='r')
         pp.close() 
 
-    if len(self_aligned_to_self_figs) > 0:
-        pdf_name = file_path.replace(".csv","_sorted_place_cells_env_aligned_to_itself.pdf")
-        pp = PdfPages(pdf_name)
-        for fig in figs:
-            pp.savefig(fig,dpi=300,edgecolor='r')
-        pp.close() 
+#    if len(self_aligned_to_self_figs) > 0:
+#        pdf_name = file_path.replace(".csv","_sorted_place_cells_env_aligned_to_itself.pdf")
+#        pp = PdfPages(pdf_name)
+#        for fig in self_aligned_to_self_figs:
+#            pp.savefig(fig,dpi=300,edgecolor='r')
+#        pp.close() 
 
 
 

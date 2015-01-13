@@ -395,7 +395,7 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
     if len(self_aligned_to_self_figs) > 0:
         pdf_name = file_path.replace(".csv","_sorted_place_cells_env_aligned_to_itself.pdf")
         pp = PdfPages(pdf_name)
-        for fig in figs:
+        for fig in self_aligned_to_self_figs:
             pp.savefig(fig,dpi=300,edgecolor='r')
         pp.close() 
 
