@@ -29,16 +29,26 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
         s2 = raw_behavior[line][6]
         #if there is no change in time, the speed remains unchanged
         #speed is calculated for every 500 ms window in this case
-        if (t2 - t1 > 500 and s2 > s1):
+        if ((s2 - s1 >= 50) or (s2 > (s1/50 + 1)*50)):
             current_speed = ((s2 - s1)*100)/(t2 - t1) #speed is in cm/s
             t1 = t2
             s1 = s2
             for blank_line in range(last_line_fill,line):
                 speed[blank_line] = current_speed
             last_line_fill = line
-        elif(t2 - t1 > 500 and s2 < s1):
-            t1 = t2
-            s1 = s2          
+        #at the reward region, when the distance measurement resets to zero
+        elif(s2 < s1 and s1-s2 > 50):
+            t2 = raw_behavior[line-1][0]
+            s2 = raw_behavior[line-1][6]          
+            current_speed = ((s2 - s1)*100)/(t2 - t1) #speed is in cm/s
+            for blank_line in range(last_line_fill,line-1):
+                speed[blank_line] = current_speed
+            last_line_fill = line            
+            t1 = raw_behavior[line][0]
+            s1 = raw_behavior[line][6]
+
+
+
         #speed[line] = current_speed
         #lick_rate[line] = current_lick_rate
     #calculate speed at each data point########################################
@@ -159,7 +169,7 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
     print 'The saved array size is:'
     print events_adjusted_for_missing_frames.shape
     #now save the array as a csv file in the same location as the input file
-    numpy.savetxt(raw_behavior_file.replace('.csv','_and_events_combined.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
+    numpy.savetxt(raw_behavior_file.replace('.csv','_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
 
 ###############################################################################
 ###############################################################################
