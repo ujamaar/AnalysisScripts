@@ -32,13 +32,13 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 
     odor = [int(x) for x in event_data[2,:]]
     lap_count = [int(x) for x in event_data[6,:]]
-    total_laps = max(lap_count) + 1
+    total_number_of_laps = max(lap_count) + 1
     
     distance = [int(x) for x in event_data[5,:]]
     
     environment = [int(x) for x in event_data[7,:]]
     number_of_environments = max(environment)
-    print 'Number of laps = %d' %total_laps
+    print 'Number of laps = %d' %total_number_of_laps
     print 'Number of environments = %d' %number_of_environments
     #print odor[0:15]
     
@@ -84,8 +84,11 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     environment_track_lengths = np.zeros((number_of_environments),dtype='int')
     laps_in_environment = np.zeros(number_of_environments,dtype='int')
     bins_in_environment = np.zeros(number_of_environments,dtype='int')
-    env_starts_at_this_bin = np.zeros(number_of_environments+1,dtype='int')
+    env_starts_at_this_env_bin = np.zeros(number_of_environments+1,dtype='int')
+    env_starts_at_this_lap_bin = np.zeros(number_of_environments+1,dtype='int')
+    lap_starts_at_this_bin = np.zeros(total_number_of_laps+1,dtype='int')
     total_number_distance_bins_in_all_env = 0
+    total_number_distance_bins_in_all_env_all_laps = 0
     expansion_factor = 0
     
     for env in range(0,number_of_environments):
@@ -105,8 +108,14 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         environment_track_lengths[env] = expansion_factor*4500
         laps_in_environment[env] = environment_transitions[env+1]-environment_transitions[env]
         bins_in_environment[env] = ((expansion_factor*4500)/distance_bin_size)
-        env_starts_at_this_bin[env+1] = env_starts_at_this_bin[env] + bins_in_environment[env]
+        env_starts_at_this_env_bin[env+1] = env_starts_at_this_env_bin[env] + bins_in_environment[env]
+        env_starts_at_this_lap_bin[env+1] = env_starts_at_this_lap_bin[env] + bins_in_environment[env]*laps_in_environment[env]       
         total_number_distance_bins_in_all_env = total_number_distance_bins_in_all_env + ((expansion_factor*4500)/distance_bin_size)
+        total_number_distance_bins_in_all_env_all_laps = total_number_distance_bins_in_all_env_all_laps + (laps_in_environment[env] * bins_in_environment[env])
+        
+        for env_in_lap in range(environment_transitions[env],environment_transitions[env+1]):
+            lap_starts_at_this_bin[env_in_lap + 1] = lap_starts_at_this_bin[env_in_lap] + bins_in_environment[env]
+        
         
         odor_start_points[env*5 + 0] =  250*expansion_factor
         odor_start_points[env*5 + 1] = 1250*expansion_factor
@@ -148,9 +157,14 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     print bins_in_environment
     print 'The odors start at these distance points:'
     print odor_start_points
-    print 'New environment starts at bin:'
-    print env_starts_at_this_bin
+    print 'New environment starts at env bin:'
+    print env_starts_at_this_env_bin
+    print 'New environment starts at lap bin:'
+    print env_starts_at_this_lap_bin
+    print 'New lap starts at bin:'    
+    print lap_starts_at_this_bin
     print 'Total number of distance bins in all enviornments: %d'%total_number_distance_bins_in_all_env
+    print 'Total number of distance bins in all enviornments all laps: %d'%total_number_distance_bins_in_all_env_all_laps
 
     ###############################################################################
     ###############################################################################    
@@ -160,118 +174,99 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     
     total_events_per_bin_per_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
     total_time_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')
-    #average_speed_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')     
-    #calculate the place field of each cell
-    #place_field = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
-    #place_field_sd = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
+    
+    total_events_per_bin_per_cell_in_each_lap = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env_all_laps),dtype='float')
+    total_time_per_bin_in_each_lap = np.zeros(total_number_distance_bins_in_all_env_all_laps,dtype='float')
+
     
     for cell in range(0,total_number_of_cells):    
         if (cell % 50 == 0):
             print 'Processing cell# %d / %d'%(cell,total_number_of_cells)    
 
-        #cell_event_locations = [[] for env in range(number_of_environments)]
-
-        #last_frame_bin = 0
         #run thi while loop until all columns have been checked for the cell in this row
         last_evaluated_bin = -1
+        last_evaluated_lap = -1
         for frame in range(0,total_number_of_frames):
             #events get counted and summed in each bin only if the mouse is running above a threshold speed at the moment (e.g. 10cm/s in this case)
             if (event_data[cell][frame] > 0 and running_speed[frame] > speed_threshold):
-                bin_for_current_event = env_starts_at_this_bin[environment[frame]-1] + distance[frame] / distance_bin_size
-                current_bin_total_events = total_events_per_bin_per_cell[cell][bin_for_current_event] + event_data[cell][frame]
-                total_events_per_bin_per_cell[cell][bin_for_current_event] = current_bin_total_events
-                #cell_event_locations[environment[frame]-1].append(distance[frame]) #save the location of each "valid" event
+                env_bin_for_current_event = env_starts_at_this_env_bin[environment[frame]-1] + distance[frame] / distance_bin_size
+                lap_bin_for_current_event = lap_starts_at_this_bin[lap_count[frame]] + distance[frame] / distance_bin_size
+                total_events_per_bin_per_cell[cell][env_bin_for_current_event] = total_events_per_bin_per_cell[cell][env_bin_for_current_event] + event_data[cell][frame]
+                total_events_per_bin_per_cell_in_each_lap[cell][lap_bin_for_current_event] = total_events_per_bin_per_cell_in_each_lap[cell][lap_bin_for_current_event] + event_data[cell][frame]
 
-            #we only need to calculate the total time spent in a bin for one cell (this time has to be same for all cells, here we choose the zeroth cell)
+            #we only need to calculate the total time spent in a bin for one cell (this time has to be same for all cells, here lets choose the zeroth cell)
             if (cell == 0 and running_speed[frame] > speed_threshold):
-                current_bin = env_starts_at_this_bin[environment[frame]-1] + distance[frame] / distance_bin_size
-                if(last_evaluated_bin != current_bin):
-                    last_evaluated_bin = current_bin
-                    total_time_spent_in_this_bin = total_time_per_bin[current_bin] + 5.0 / running_speed[frame] # 5.0cm is divided by speed to get the time spent in the current bin (speed was calculated as time required to cross each 5.0cm stretch of the track)
-                    total_time_per_bin[current_bin] = total_time_spent_in_this_bin
+                env_current_bin = env_starts_at_this_env_bin[environment[frame]-1] + distance[frame] / distance_bin_size
+                lap_current_bin = lap_starts_at_this_bin[lap_count[frame]] + distance[frame] / distance_bin_size
+                if(last_evaluated_bin != lap_current_bin or lap_count[frame] != last_evaluated_lap):
+                    last_evaluated_bin = lap_current_bin
+                    last_evaluated_lap = lap_count[frame]
+                    total_time_per_bin[env_current_bin] = total_time_per_bin[env_current_bin] + 5.0 / running_speed[frame] # 5.0cm is divided by speed to get the time spent in the current bin (speed was calculated as time required to cross each 5.0cm stretch of the track)
+                    total_time_per_bin_in_each_lap[lap_current_bin] = 5.0 / running_speed[frame]
                     
-    print total_time_per_bin
+#    print total_time_per_bin
     print 'Total running time: %1.1f seconds'%np.sum(total_time_per_bin)
 
-    #np.savetxt(file_path.replace('.csv','_event_data.csv'), total_events_per_bin_per_cell, fmt='%1.2f', delimiter=',', newline='\n') 
+ #   print total_time_per_bin_in_each_lap[300:390]
+    print 'Total running time in all laps combined: %1.1f seconds'%np.sum(total_time_per_bin_in_each_lap)
 
-#    # for each bin, calculate the number of events per lap
-#    events_per_lap_per_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
-#    for cell in range(0,total_number_of_cells): 
-#        for env in range(0,number_of_environments):
-#            laps_in_this_env = laps_in_environment[env] * 1.00
-#            for env_bin in range(env_starts_at_this_bin[env],env_starts_at_this_bin[env+1]):
-#                events_per_lap_per_bin[cell][env_bin] = total_events_per_bin_per_cell[cell][env_bin] / laps_in_this_env
+    #sum_of_evets_for_all_cells_in_each_env_bin = np.sum(total_events_per_bin_per_cell, axis=0)
+    #sum_of_evets_for_all_cells_in_each_env_bin_sorted = np.sort(sum_of_evets_for_all_cells_in_each_env_bin)
+    #np.savetxt(file_path.replace('.csv','_sorted_summed_events_per_bin.csv'), sum_of_evets_for_all_cells_in_each_env_bin, fmt='%i', delimiter=',', newline='\n') 
+    #np.savetxt(file_path.replace('.csv','_event_time_per_lap.csv'), total_time_per_bin_in_each_lap, fmt='%1.2f', delimiter=',', newline='\n') 
 
-    events_per_second_per_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
+    
+    events_per_second_per_env_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
+    events_per_second_per_lap_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env_all_laps),dtype='float')
     for cell in range(0,total_number_of_cells): 
         for env_bin in range(0,total_number_distance_bins_in_all_env):
-            if(total_time_per_bin[env_bin] > 1.00):
-                events_per_second_per_bin[cell][env_bin] = total_events_per_bin_per_cell[cell][env_bin] / total_time_per_bin[env_bin]
+            if(total_time_per_bin[env_bin] > 0.00):
+                events_per_second_per_env_bin[cell][env_bin] = total_events_per_bin_per_cell[cell][env_bin] / total_time_per_bin[env_bin]
             else:
-                events_per_second_per_bin[cell][env_bin] = 0.00
+                events_per_second_per_env_bin[cell][env_bin] = 0.00
+        for lap_bin in range(0,total_number_distance_bins_in_all_env_all_laps):
+            if(total_time_per_bin_in_each_lap[lap_bin] > 0.00):
+                events_per_second_per_lap_bin[cell][lap_bin] = total_events_per_bin_per_cell_in_each_lap[cell][lap_bin] / total_time_per_bin_in_each_lap[lap_bin]
+            else:
+                events_per_second_per_lap_bin[cell][lap_bin] = 0.00            
 
+    #np.savetxt(file_path.replace('.csv','_events_per_second_per_bin_per_lap.csv'), events_per_second_per_lap_bin, fmt='%1.2f', delimiter=',', newline='\n')
 
+#    sum_of_event_times_in_all_bins_for_a_cell = np.sum(events_per_second_per_lap_bin, axis=1)
+#    np.savetxt(file_path.replace('.csv','_sum_of_event_times_lap.csv'), sum_of_event_times_in_all_bins_for_a_cell, fmt='%1.2f', delimiter=',', newline='\n') 
 
-    #np.savetxt(file_path.replace('.csv','_events_per_second_per_bin.csv'), events_per_second_per_bin, fmt='%f', delimiter=',', newline='\n')
 
     #apply a one dimensional gaussian filter to event data for each cell:
-    gaussian_filtered_event_data = ndimage.gaussian_filter1d(events_per_second_per_bin,sigma=gaussian_filter_sigma,axis=1)
-    #np.savetxt(file_path.replace('.csv','_gaussian_filter_events_per_second_per_bin.csv'), gaussian_filtered_event_data, fmt='%f', delimiter=',', newline='\n') 
+    gaussian_filtered_env_event_data = ndimage.gaussian_filter1d(events_per_second_per_env_bin,sigma=gaussian_filter_sigma,axis=1)
+    gaussian_filtered_lap_event_data = ndimage.gaussian_filter1d(events_per_second_per_lap_bin,sigma=gaussian_filter_sigma,axis=1)
+    #np.savetxt(file_path.replace('.csv','_gaussian_filter_events_per_second_per_bin.csv'), gaussian_filtered_env_event_data, fmt='%f', delimiter=',', newline='\n') 
+    #np.savetxt(file_path.replace('.csv','_gaussian_filter_events_per_second_per_bin_per_lap.csv'), gaussian_filtered_lap_event_data, fmt='%1.2f', delimiter=',', newline='\n') 
 
-    place_data_each_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='float')
-    
+    #place_data_each_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='float')
+
+    place_cell_rank_each_cell = np.zeros((total_number_of_cells,number_of_environments),dtype='float')    
     
     for cell in range(0,total_number_of_cells): 
         for env in range(0,number_of_environments):
             env_max_response_column = 0
             env_max_response = 0.00
-            for env_bin in range(env_starts_at_this_bin[env],env_starts_at_this_bin[env+1]):
-                if (gaussian_filtered_event_data[cell][env_bin] > env_max_response):
+            for env_bin in range(env_starts_at_this_env_bin[env],env_starts_at_this_env_bin[env+1]):
+                if (gaussian_filtered_env_event_data[cell][env_bin] > env_max_response):
                     env_max_response_column = env_bin
-                    env_max_response = gaussian_filtered_event_data[cell][env_bin] 
+                    env_max_response = gaussian_filtered_env_event_data[cell][env_bin] 
             if(env_max_response_column == 0 and env_max_response == 0.00):
-                place_data_each_cell[cell][2*env]= -1
-                place_data_each_cell[cell][2*env+1]= env_max_response
+                place_cell_rank_each_cell[cell][env]= -1
             else:
-                place_data_each_cell[cell][2*env]= env_max_response_column
-                place_data_each_cell[cell][2*env+1]= env_max_response                
+                place_cell_rank_each_cell[cell][env]= env_max_response_column
+              
                
-        for column in range(2*number_of_environments,place_data_each_cell.shape[1]):
-            place_data_each_cell[cell][column] = gaussian_filtered_event_data[cell][column-2*number_of_environments]
-
-       
-#        for env in range (0,place_field.shape[1]):
-#            if(len(cell_event_locations[env]) > 0):
-#                place_field[cell][env] = np.mean(cell_event_locations[env])
-#                place_field_sd[cell][env] = np.std(cell_event_locations[env])
-#        
-#        if (cell % 50 == 0):
-#            print cell_event_locations
-#            print place_field[cell]
-#            print place_field_sd[cell]
-#
-#    #np.savetxt(file_path.replace('.csv','_event_data.csv'), event_data, fmt='%i', delimiter=',', newline='\n')     
-#    np.savetxt(file_path.replace('.csv','_total_events_per_bin_per_cell.csv'), total_events_per_bin_per_cell, fmt='%f', delimiter=',', newline='\n')         
-#    total_events_per_bin_per_cell_filtered = ndimage.gaussian_filter1d(total_events_per_bin_per_cell,sigma=2,axis=1)
-#    np.savetxt(file_path.replace('.csv','_filtered_total_events_per_bin_per_cell.csv'), total_events_per_bin_per_cell_filtered, fmt='%f', delimiter=',', newline='\n') 
-#
-#    #save the place field information and the number of events per space bin for each cell
-#    place_data_each_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='int')
-#    
-#    for cell in range(0,place_data_each_cell.shape[0]):
-#        
-#        for col in range (0,number_of_environments):
-#            place_data_each_cell[cell][2*col]= place_field[cell][col]
-#            place_data_each_cell[cell][2*col+1]= place_field_sd[cell][col]
-#        
 #        for column in range(2*number_of_environments,place_data_each_cell.shape[1]):
-#            place_data_each_cell[cell][column] = total_events_per_bin_per_cell_filtered[cell][column-2*number_of_environments]
+#            place_data_each_cell[cell][column] = gaussian_filtered_env_event_data[cell][column-2*number_of_environments]
 
             
     #np.savetxt(file_path.replace('.csv','_gaussian_filter_events_per_second_per_bin_and_ranking_by_peak.csv'), place_data_each_cell, fmt='%f', delimiter=',', newline='\n')            
     #now send the data for plotting:
-    generate_plots(file_path, place_data_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,environment_track_lengths,odor_sequence_in_letters,distance_bin_size,odor_start_points,expansion_factor,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma)
+    #generate_plots(file_path, place_data_each_cell,gaussian_filtered_lap_event_data,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_env_bin,environment_track_lengths,odor_sequence_in_letters,distance_bin_size,odor_start_points,expansion_factor,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma)
 
 
 ###############################################################################
@@ -280,81 +275,77 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 ###############################################################################
 ###############################################################################
 #based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
-def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,environment_track_lengths,odor_sequence,distance_bin_size,odor_start_points,expansion_factor,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma):
-
-    figs = []
-    env_aligned_to_itself_figs = []
+#def generate_plots(file_path, place_field_events_each_cell,gaussian_filtered_lap_event_data,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_env_bin,environment_track_lengths,odor_sequence,distance_bin_size,odor_start_points,expansion_factor,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma):
 
     #to plot the hitogram of summed events
-    all_histogram_heights = np.sum(place_field_events_each_cell[:,2*number_of_environments:place_field_events_each_cell.shape[1]], axis=0)
-
-#    histogram_tick_mark = 1
-#    if(np.max(all_histogram_heights) > 4):
-#        histogram_tick_mark = (np.max(all_histogram_heights)/4)+1
-#    print histogram_tick_mark
-#    majorLocator   = MultipleLocator(histogram_tick_mark)
-#    majorFormatter = FormatStrFormatter('%d')
-#    #minorLocator   = MultipleLocator(histogram_tick_mark/2)
-
-    #heatmap_colors = ['Blues','Greens','BuPu','Oranges','Purples','Reds','RdPu','PuBu']
+    #all_histogram_heights = np.sum(place_data_each_cell[:,2*number_of_environments:place_data_each_cell.shape[1]], axis=0)
     
     #use a different plot legend color for each environment
     plot_color = ['r','b','g','m','c','y']  
     
-    for plot_env in range (0,number_of_environments):
-        data_array = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,plot_env*2],kind='quicksort')]
-        #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array, fmt='%f', delimiter=',', newline='\n')   
+    for env in range (0,number_of_environments):
 
-        #for env in range (plot_env,plot_env+1):
-        for env in range (0,number_of_environments):
+        lap_by_lap_data_array = np.zeros((total_number_of_cells,(1 + bins_in_environment[env] + env_starts_at_this_lap_bin[env+1]-env_starts_at_this_lap_bin[env])),dtype='float')
+        print "Lap by lap data array size is: (%d ,%d)" %(lap_by_lap_data_array.shape[0], lap_by_lap_data_array.shape[1]) 
+        
+        for cell in range (0,total_number_of_cells):
+            for data_column in range (0,lap_by_lap_data_array.shape[1]):
+                if(data_column == 0):
+                    lap_by_lap_data_array[cell][data_column] = place_cell_rank_each_cell[cell][env]
+                elif(data_column >= 1 and data_column <= bins_in_environment[env]):
+                    lap_by_lap_data_array[cell][data_column] = gaussian_filtered_env_event_data[cell][env_starts_at_this_env_bin[env]+data_column-1]
+                elif(data_column > bins_in_environment[env]):
+                    lap_by_lap_data_array[cell][data_column] = gaussian_filtered_lap_event_data[cell][env_starts_at_this_lap_bin[env]+data_column-1-bins_in_environment[env]]
+                    
+                              
+        data_array = lap_by_lap_data_array[np.argsort(lap_by_lap_data_array[:,0],kind='quicksort')]
+        all_histogram_heights = np.sum(data_array[:,1:data_array.shape[1]], axis=0)
+        #print all_histogram_heights
+        #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%env), data_array, fmt='%f', delimiter=',', newline='\n')   
+
+        figs = []
+        #env_aligned_to_itself_figs = []
+
+
+        #for env in range (env,env+1):
+        for lap in range (0,laps_in_environment[env]+1):
             fig = plt.figure()
             fig.subplots_adjust(hspace=0)
             fig.set_rasterized(True)
-            fig.suptitle('Environment %d place cell activity sorted according to environment %d' %(env+1,plot_env+1))
+            fig.suptitle('Environment %d place cell activity in lap %d' %(env+1,lap))
 
             ax  = plt.subplot2grid((4,4), (0,0), rowspan=3,colspan=4)
             
             #to label the odor sequence on the plots
-            od = odor_sequence[env*4:(env+1)*4]            
-            sort_od = odor_sequence[plot_env*4:(plot_env+1)*4] 
+            od = odor_sequence_in_letters[env*4:(env+1)*4]            
+#            sort_od = odor_sequence_in_letters[env*4:(env+1)*4] 
 
-            plt.figtext(0.2 ,0.91, "%s"%od[0], fontsize='large', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.33,0.91, "%s"%od[1], fontsize='large', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.47,0.91, "%s"%od[2], fontsize='large', color=plot_color[plot_env], ha ='left')            
-            plt.figtext(0.6 ,0.91, "%s"%od[3], fontsize='large', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.2 ,0.91, "%s"%od[0], fontsize='large', color=plot_color[env], ha ='left')
+            plt.figtext(0.33,0.91, "%s"%od[1], fontsize='large', color=plot_color[env], ha ='left')
+            plt.figtext(0.47,0.91, "%s"%od[2], fontsize='large', color=plot_color[env], ha ='left')            
+            plt.figtext(0.6 ,0.91, "%s"%od[3], fontsize='large', color=plot_color[env], ha ='left')
 
-            plt.figtext(0.85,0.9, "Current environment:",                                  fontsize='xx-small', color=plot_color[plot_env], ha ='left') 
-            plt.figtext(0.85,0.85, "%d - %s%s%s%s"%(env+1,od[0],od[1],od[2],od[3]),        fontsize='large', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.85,0.8, "Sort reference env:",                                   fontsize='xx-small', color=plot_color[plot_env], ha ='left') 
-            plt.figtext(0.85,0.75, "%d - %s%s%s%s"%(plot_env+1,sort_od[0],sort_od[1],sort_od[2],sort_od[3]), fontsize='large', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.85,0.9, "Current environment:",                                  fontsize='xx-small', color=plot_color[env], ha ='left') 
+            plt.figtext(0.85,0.85, "%d - %s%s%s%s"%(env+1,od[0],od[1],od[2],od[3]),        fontsize='large', color=plot_color[env], ha ='left')
+#            plt.figtext(0.85,0.8, "Sort reference env:",                                   fontsize='xx-small', color=plot_color[env], ha ='left') 
+#            plt.figtext(0.85,0.75, "%d - %s%s%s%s"%(env+1,sort_od[0],sort_od[1],sort_od[2],sort_od[3]), fontsize='large', color=plot_color[env], ha ='left')
 
-            plt.figtext(0.85,0.7,"Environments: %d" %number_of_environments,               fontsize='x-small', color=plot_color[plot_env], ha ='left')           
-            plt.figtext(0.85,0.65,"Bin size: %dmm" %distance_bin_size,                     fontsize='x-small', color=plot_color[plot_env], ha ='left')            
-            plt.figtext(0.85,0.6,"Track: %1.1fm" %(environment_track_lengths[env]/1000.0), fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.85,0.55,"Laps: %d" %laps_in_environment[env],                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.85,0.5,"Cells: %d" %total_number_of_cells,                       fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.85,0.45,"min speed: %dcm/s" %speed_threshold,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.85,0.4,"Sigma: %1.1f" %gaussian_filter_sigma,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.85,0.7,"Environments: %d" %number_of_environments,               fontsize='x-small', color=plot_color[env], ha ='left')           
+            plt.figtext(0.85,0.65,"Bin size: %dmm" %distance_bin_size,                     fontsize='x-small', color=plot_color[env], ha ='left')            
+            plt.figtext(0.85,0.6,"Track: %1.1fm" %(environment_track_lengths[env]/1000.0), fontsize='x-small', color=plot_color[env], ha ='left')
+            plt.figtext(0.85,0.55,"Laps: %d" %laps_in_environment[env],                    fontsize='x-small', color=plot_color[env], ha ='left')
+            plt.figtext(0.85,0.5,"Cells: %d" %total_number_of_cells,                       fontsize='x-small', color=plot_color[env], ha ='left')
+            plt.figtext(0.85,0.45,"min speed: %dcm/s" %speed_threshold,                    fontsize='x-small', color=plot_color[env], ha ='left')
+            plt.figtext(0.85,0.4,"Sigma: %1.1f" %gaussian_filter_sigma,                    fontsize='x-small', color=plot_color[env], ha ='left')
 
-            ax.spines['bottom'].set_color(plot_color[plot_env])
-            ax.spines['top'   ].set_color(plot_color[plot_env]) 
-            ax.spines['right' ].set_color(plot_color[plot_env])
-            ax.spines['left'  ].set_color(plot_color[plot_env])
+            ax.spines['bottom'].set_color(plot_color[env])
+            ax.spines['top'   ].set_color(plot_color[env]) 
+            ax.spines['right' ].set_color(plot_color[env])
+            ax.spines['left'  ].set_color(plot_color[env])
     
-            #normalize events for each cells (on scale from 0 to 100)
-#            data_array_of_summed_events = data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments]
-#            normalized_data_array = np.zeros((total_number_of_cells,bins_in_environment[env]),dtype='float')
-#        
-#            for cell in range(0,normalized_data_array.shape[0]):    
-#                max_number_of_events = np.max(data_array_of_summed_events[cell])
-#                for data_bin in range(0,normalized_data_array.shape[1]):
-#                    if(max_number_of_events > 0):
-#                        normalized_data_array[cell][data_bin] = (data_array_of_summed_events[cell][data_bin] * 100)/max_number_of_events #normalize from 0 to 100
-
-
-            #if(plot_env%2 == 0):
+            #if(env%2 == 0):
             #heatmap = ax.pcolor(normalized_data_array, cmap=plt.cm.Blues) 
-            heatmap = ax.pcolormesh(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.jet,vmin=0.00,vmax=0.50) 
+            heatmap = ax.pcolormesh(data_array[:,1+lap*bins_in_environment[env]:1+(lap+1)*bins_in_environment[env]], cmap=plt.cm.jet,vmin=0.00)#,vmax=0.50) 
             color_legend = plt.colorbar(heatmap,aspect=30)
             color_legend.ax.tick_params(labelsize=5) 
             
@@ -370,7 +361,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             first_cell_with_events = -1
             cell = 0
             while(first_cell_with_events < 0 and cell < total_number_of_cells):
-                if ((data_array[cell][1+plot_env*2]) > 0):
+                if ((data_array[cell][1+env*2]) > 0):
                     first_cell_with_events = cell
                 cell = cell+1
             plt.axhline(y=first_cell_with_events, linewidth=0.1, color='k')
@@ -392,12 +383,22 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             fig.add_subplot(ax)
             ###############################################################################
                             
-            histogram_heights = all_histogram_heights[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]]
+
+            histogram_heights = all_histogram_heights[lap*bins_in_environment[env]:(lap+1)*bins_in_environment[env]]
             #np.savetxt(file_path.replace('.csv','_histogram_heights.csv'), histogram_heights, fmt='%i', delimiter=',', newline='\n')  
             
-            max_histogram_height = max(all_histogram_heights)
-            max_time_per_bin = max(total_time_per_bin)
-            normalized_total_time_per_bin = [((x * max_histogram_height)/max_time_per_bin) for x in total_time_per_bin[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]]]
+            max_histogram_height = max(histogram_heights)
+            max_time_per_bin = []
+            normalized_total_time_per_bin = []
+            if(lap == 0):            
+                max_time_per_bin = max(total_time_per_bin)
+                normalized_total_time_per_bin = [((x * max_histogram_height)/max_time_per_bin) for x in total_time_per_bin[env_starts_at_this_env_bin[env]:env_starts_at_this_env_bin[env+1]]]
+                #print len(normalized_total_time_per_bin)
+            elif(lap > 0):
+                max_time_per_bin = max(total_time_per_bin_in_each_lap[env_starts_at_this_lap_bin[env]:env_starts_at_this_lap_bin[env+1]])
+                normalized_total_time_per_bin = [((x * max_histogram_height)/max_time_per_bin) for x in total_time_per_bin_in_each_lap[env_starts_at_this_lap_bin[env]+bins_in_environment[env]*(lap-1):env_starts_at_this_lap_bin[env]+bins_in_environment[env]*lap]]
+                #print len(normalized_total_time_per_bin)
+
             #print histogram_heights
             #print normalized_total_time_per_bin
             
@@ -408,10 +409,6 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             ax1.set_ylabel('event proportion',fontsize='xx-small')
             ax1.set_ylim(0,max_histogram_height)
             plt.setp(ax1.get_yticklabels(),visible=False)
-
-#            ax1.yaxis.set_major_locator(majorLocator)
-#            ax1.yaxis.set_major_formatter(majorFormatter)
-#            #ax1.yaxis.set_minor_locator(minorLocator)
             
             color_legend = plt.colorbar(heatmap,aspect=30)
             fig.delaxes(fig.axes[3]) #here axis 0 = plot in ax, 1 = colorbar in ax, 2 = plot in ax1, 3 = heatmap in ax1
@@ -423,30 +420,32 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.axvspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='m', alpha=odor_region_shade)
             plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size, linewidth=0.1, color='b')
  
-            ax1.spines['bottom'].set_color(plot_color[plot_env])
-            ax1.spines['top'   ].set_color(plot_color[plot_env]) 
-            ax1.spines['right' ].set_color(plot_color[plot_env])
-            ax1.spines['left'  ].set_color(plot_color[plot_env])
+            ax1.spines['bottom'].set_color(plot_color[env])
+            ax1.spines['top'   ].set_color(plot_color[env]) 
+            ax1.spines['right' ].set_color(plot_color[env])
+            ax1.spines['left'  ].set_color(plot_color[env])
 
             fig.add_subplot(ax1)
-
-
      
             #can be commented out to stop showing all plots in the console
             plt.show()
+            
             figs.append(fig)
-            if (env == plot_env):
-                env_aligned_to_itself_figs.append(fig)                
+            if (lap == 0):
+                plt.show()           
+#            if (env == lap-1):
+#                plt.show()
+#                env_aligned_to_itself_figs.append(fig)                
             plt.close()
         
-    if len(figs) > 0:
-        pdf_name = file_path.replace(".csv","_time_normalized_place_cells.pdf")
-        pp = PdfPages(pdf_name)
-        for fig in env_aligned_to_itself_figs:
-            pp.savefig(fig,dpi=300,edgecolor='r')
-        for fig in figs:
-            pp.savefig(fig,dpi=300,edgecolor='r')
-        pp.close() 
+        if len(figs) > 0:
+            pdf_name = file_path.replace(".csv","_time_normalized_place_cells_per_lap_for_env%d.pdf"%(env+1))
+            pp = PdfPages(pdf_name)
+#            for fig in env_aligned_to_itself_figs:
+#                pp.savefig(fig,dpi=300,edgecolor='r')
+            for fig in figs:
+                pp.savefig(fig,dpi=300,edgecolor='r')
+            pp.close() 
 
 
 #to make sure that the files are processed in the proper order (not really important here, but just in case)

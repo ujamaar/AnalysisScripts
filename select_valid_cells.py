@@ -11,53 +11,118 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
     #fast_output_array = numpy.loadtxt(complete_file, dtype='int', comments='#', delimiter=',', converters=None, skiprows=2, usecols=(0,1,3,5,6,12,15), unpack=False, ndmin=0) 
     
     raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',',skiprows=2)
+
+
+#    #calculate the time spent per 50mm stretch of the track########################################
+#
+#    s1 = 0.00
+#    s2 = 0.00
+#    t1 = 0.00
+#    t2 = 0.00
+#    last_line_fill = 0
+#    time_spent_per_50mm_bin = numpy.zeros(len(raw_behavior),dtype='int')
+#    
+#    for line in range(0,len(raw_behavior)):
+#        #read current distance and time
+#        t2 = raw_behavior[line][0]
+#        s2 = raw_behavior[line][6]
+#        #if there is no change in time, the speed remains unchanged
+#        #speed is calculated for every 500 ms window in this case
+#        if ((s2 - s1 >= 50.00) or (s2 > (s1/50.00 + 1)*50.00)):
+#            current_speed = (s2 - s1)/(t2 - t1) #speed is in mm/ms (equivalent to m/s)
+#            t1 = t2
+#            s1 = s2
+#            for blank_line in range(last_line_fill,line):
+#                time_spent_per_50mm_bin[blank_line] = 50.00 / current_speed
+#            last_line_fill = line
+#        #at the reward region, when the distance measurement resets to zero
+#        elif(s2 < s1 and s1-s2 > 50.00):
+#            t2 = raw_behavior[line-1][0]
+#            s2 = raw_behavior[line-1][6]          
+#            current_speed = (s2 - s1)/(t2 - t1) #speed is in mm/ms (equivalent to m/s)
+#            for blank_line in range(last_line_fill,line-1):
+#                time_spent_per_50mm_bin[blank_line] = 50.00 / current_speed
+#            last_line_fill = line            
+#            t1 = raw_behavior[line][0]
+#            s1 = raw_behavior[line][6]
+#    #calculate the time spent per 50mm stretch of the track########################################
+
+
     
     #calculate speed at each data point########################################
-    speed = numpy.zeros(len(raw_behavior),dtype='int')
-    s1 = 0
-    s2 = 0
-    t1 = 0
-    t2 = 0
+
+    s1 = 0.00
+    s2 = 0.00
+    t1 = 0.00
+    t2 = 0.00
     last_line_fill = 0
+    speed = numpy.zeros(len(raw_behavior),dtype='float')
+
     
-    current_speed = 0
+    current_speed = 0.00
     #current_lick_rate = 0.0    
     
     for line in range(0,len(raw_behavior)):
         #read current distance and time
-        t2 = raw_behavior[line][0]
         s2 = raw_behavior[line][6]
+        #sanity_check = raw_behavior[line-1][6]
         #if there is no change in time, the speed remains unchanged
         #speed is calculated for every 500 ms window in this case
-        if ((s2 - s1 >= 50) or (s2 > (s1/50 + 1)*50)):
-            current_speed = ((s2 - s1)*100)/(t2 - t1) #speed is in cm/s
-            t1 = t2
-            s1 = s2
+        if (s2 >= ((int(s1/50.00) + 1)*50.00)):# and (abs(s2-sanity_check) < 20.00)):
+            t2 = raw_behavior[line-1][0]
+            s2 = raw_behavior[line-1][6]
+            current_speed = ((s2 - s1)*100.00)/(t2 - t1) #speed is in cm/s
+
+            t1 = raw_behavior[line][0]
+            s1 = raw_behavior[line][6]
+            
             for blank_line in range(last_line_fill,line):
                 speed[blank_line] = current_speed
             last_line_fill = line
-        #at the reward region, when the distance measurement resets to zero
-        elif(s2 < s1 and s1-s2 > 50):
+        #at the end of reward region, when the distance measurement resets to zero
+        elif(s2 < s1 and s1-s2 > 50.00):
             t2 = raw_behavior[line-1][0]
             s2 = raw_behavior[line-1][6]          
-            current_speed = ((s2 - s1)*100)/(t2 - t1) #speed is in cm/s
-            for blank_line in range(last_line_fill,line-1):
+            current_speed = ((s2 - s1)*100.00)/(t2 - t1) #speed is in cm/s
+            for blank_line in range(last_line_fill,line):
+                speed[blank_line] = current_speed
+            last_line_fill = line            
+            t1 = raw_behavior[line][0]
+            s1 = raw_behavior[line][6]
+        #at the end of the recording
+        elif(line == len(raw_behavior)-1):
+            t2 = raw_behavior[line-1][0]
+            s2 = raw_behavior[line-1][6]          
+            current_speed = ((s2 - s1)*100.00)/(t2 - t1) #speed is in cm/s
+            for blank_line in range(last_line_fill,line+1):
                 speed[blank_line] = current_speed
             last_line_fill = line            
             t1 = raw_behavior[line][0]
             s1 = raw_behavior[line][6]
 
+    min_speed = min(speed)
+    max_speed = max(speed)
+    print 'Minimum speed was: %f' %min_speed 
+    print 'Maximum speed was: %f' %max_speed 
+    
+    zero_speed_times = []
+
+    for speed_row in range(0,len(speed)):
+        if(speed[speed_row] == min_speed or speed[speed_row] == max_speed):
+            zero_speed_times.append(speed[speed_row])        
+            zero_speed_times.append(raw_behavior[speed_row][0])
+
+    numpy.savetxt(raw_behavior_file.replace('.csv','_time_points_for_min_max_speeds.csv'), zero_speed_times, fmt='%f', delimiter=',', newline='\n')
+
+    #numpy.savetxt(raw_behavior_file.replace('.csv','_speeeeeeeeeeeeeeeed.csv'), speed, fmt='%f', delimiter=',', newline='\n')
 
 
-        #speed[line] = current_speed
-        #lick_rate[line] = current_lick_rate
+
     #calculate speed at each data point########################################
-
-
 
     #uncomment if using raw behavior file
     #extract only the relevant columns from the raw behavior file
-    behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][13],9),dtype='int')
+    behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][13],9),dtype='float')
     i = -1
     
     for row in range(0, len(raw_behavior)):
@@ -82,6 +147,8 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
     print behavior.shape
     number_of_frames = behavior.shape[0]
     print 'Total number of frames recorded by arduino: %d'%number_of_frames
+
+    
 ###############################################################################
 
 
@@ -122,7 +189,7 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
     #print valid_cell_events[len(valid_cell_events)-6:len(valid_cell_events)]
     
     #    
-    events_by_frame = numpy.empty((number_of_frames,number_of_valid_cells),dtype='int')   
+    events_by_frame = numpy.empty((number_of_frames,number_of_valid_cells),dtype='float')   
     max_frame_with_event = 0
     for this_cell in range(0,number_of_valid_cells):
         frames_in_this_cell = len(valid_cell_events[this_cell])
@@ -146,7 +213,7 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
 ###############################################################################
 
     print 'Now we will nicely pack and save all this information in one csv file:'
-    events_adjusted_for_missing_frames = numpy.empty((number_of_frames,behavior.shape[1] + number_of_valid_cells),dtype='int')
+    events_adjusted_for_missing_frames = numpy.empty((number_of_frames,behavior.shape[1] + number_of_valid_cells),dtype='float')
 
     adjust_for_missing_frames = 0
     
@@ -169,7 +236,7 @@ def extract_details_per_frame (raw_behavior_file, events_file, valid_cells_file,
     print 'The saved array size is:'
     print events_adjusted_for_missing_frames.shape
     #now save the array as a csv file in the same location as the input file
-    numpy.savetxt(raw_behavior_file.replace('.csv','_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
+    numpy.savetxt(raw_behavior_file.replace('.csv','_and_events.csv'), events_adjusted_for_missing_frames, fmt='%1.3f', delimiter=',', newline='\n')
 
 ###############################################################################
 ###############################################################################
