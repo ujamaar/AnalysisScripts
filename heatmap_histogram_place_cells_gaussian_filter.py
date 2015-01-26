@@ -219,6 +219,13 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     gaussian_filtered_event_data = ndimage.gaussian_filter1d(events_per_second_per_bin,sigma=gaussian_filter_sigma,axis=1)
     #np.savetxt(file_path.replace('.csv','_gaussian_filter_events_per_second_per_bin.csv'), gaussian_filtered_event_data, fmt='%f', delimiter=',', newline='\n') 
 
+    gaussian_filtered_event_data_with_threshold = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
+    for row in range(0,total_number_of_cells):
+        for column in range(0,total_number_distance_bins_in_all_env):
+            if(gaussian_filtered_event_data[row][column] >= 0.25):
+                gaussian_filtered_event_data_with_threshold[row][column] = gaussian_filtered_event_data[row][column]
+                
+
     place_data_each_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='float')
     
     
@@ -227,9 +234,9 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
             env_max_response_column = 0
             env_max_response = 0.00
             for env_bin in range(env_starts_at_this_bin[env],env_starts_at_this_bin[env+1]):
-                if (gaussian_filtered_event_data[cell][env_bin] > env_max_response):
+                if (gaussian_filtered_event_data_with_threshold[cell][env_bin] > env_max_response):
                     env_max_response_column = env_bin
-                    env_max_response = gaussian_filtered_event_data[cell][env_bin] 
+                    env_max_response = gaussian_filtered_event_data_with_threshold[cell][env_bin] 
             if(env_max_response_column == 0 and env_max_response == 0.00):
                 place_data_each_cell[cell][2*env]= -1
                 place_data_each_cell[cell][2*env+1]= env_max_response
@@ -238,7 +245,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                 place_data_each_cell[cell][2*env+1]= env_max_response                
                
         for column in range(2*number_of_environments,place_data_each_cell.shape[1]):
-            place_data_each_cell[cell][column] = gaussian_filtered_event_data[cell][column-2*number_of_environments]
+            place_data_each_cell[cell][column] = gaussian_filtered_event_data_with_threshold[cell][column-2*number_of_environments]
 
        
 #        for env in range (0,place_field.shape[1]):
@@ -297,12 +304,25 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
 #    #minorLocator   = MultipleLocator(histogram_tick_mark/2)
 
     #heatmap_colors = ['Blues','Greens','BuPu','Oranges','Purples','Reds','RdPu','PuBu']
-    
     #use a different plot legend color for each environment
     plot_color = ['r','b','g','m','c','y']  
     
     for plot_env in range (0,number_of_environments):
-        data_array = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,plot_env*2],kind='quicksort')]
+        data_array_all = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,plot_env*2],kind='quicksort')]
+        
+        data_array = []
+        for row in range(0,data_array_all.shape[0]):
+            if(data_array_all[row][2*plot_env] >= 0):
+                if(len(data_array) == 0):
+                    data_array = data_array_all[row,:]
+                else:
+                    data_array = np.vstack([data_array, data_array_all[row,:]])
+        
+        if(len(data_array) == 0):
+            data_array = np.zeros((2,data_array_all.shape[1]))
+        elif(len(data_array) == data_array_all.shape[1]):
+            data_array = np.vstack([np.zeros((1,data_array_all.shape[1])),data_array])            
+        
         #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array, fmt='%f', delimiter=',', newline='\n')   
 
         #for env in range (plot_env,plot_env+1):
@@ -364,12 +384,12 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.setp(ax.get_xticklabels(),visible=False)
             
             plt.xlim (0,bins_in_environment[env])
-            plt.ylim (0,total_number_of_cells) 
+            plt.ylim (0,data_array.shape[0]) 
             plt.gca().invert_yaxis()
             
             first_cell_with_events = -1
             cell = 0
-            while(first_cell_with_events < 0 and cell < total_number_of_cells):
+            while(first_cell_with_events < 0 and cell < data_array.shape[0]):
                 if ((data_array[cell][1+plot_env*2]) > 0):
                     first_cell_with_events = cell
                 cell = cell+1
@@ -405,7 +425,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.bar(range(bins_in_environment[env]),histogram_heights, width=1, color='g',linewidth=0)
             plt.plot(range(bins_in_environment[env]),normalized_total_time_per_bin,'r-', linewidth = 0.1)
             ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
-            ax1.set_ylabel('event proportion',fontsize='xx-small')
+            ax1.set_ylabel('summed events',fontsize='xx-small')
             ax1.set_ylim(0,max_histogram_height)
             plt.setp(ax1.get_yticklabels(),visible=False)
 
