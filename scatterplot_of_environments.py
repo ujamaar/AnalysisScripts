@@ -183,7 +183,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                     total_time_spent_in_this_bin = total_time_per_bin[current_bin] + 5.0 / running_speed[frame] # 5.0cm is divided by speed to get the time spent in the current bin (speed was calculated as time required to cross each 5.0cm stretch of the track)
                     total_time_per_bin[current_bin] = total_time_spent_in_this_bin
                     
-    print total_time_per_bin
+    #print total_time_per_bin
     print 'Total running time: %1.1f seconds'%np.sum(total_time_per_bin)
 
     #np.savetxt(file_path.replace('.csv','_event_data.csv'), total_events_per_bin_per_cell, fmt='%1.2f', delimiter=',', newline='\n') 
@@ -246,16 +246,16 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
     figs = []
 
     #use a different plot legend color for each environment
-    plot_color = ['r','b','g','m','c','y']
-    #point_marker = ['.','.','.','.','.','.'] 
-    point_marker = ['.','*','.','x','.','^'] 
+    plot_color = ['r','g','b','m','c','y']
+    point_marker = ['.','.','.','.','.','.'] 
+    #point_marker = ['.','*','.','x','.','^'] 
     env_odors = []
     for env in range (0,number_of_environments):
         env_odors.append('%d -'%(env+1) + odor_sequence[0+4*env] + odor_sequence[1+4*env] + odor_sequence[2+4*env] + odor_sequence[3+4*env])
     print env_odors
     
-    
-    for env in range (0,number_of_environments):
+    scatter_plot_environments = [0,2]
+    for env in scatter_plot_environments:
         #list_to_be_sorted = [int(x) for x in place_field_events_each_cell[:,env*2]]
         data_array_all = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,env*2],kind='quicksort')]
         
@@ -275,33 +275,57 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
         #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%(env+1)), data_array[:,0:2*number_of_environments], fmt='%f', delimiter=',', newline='\n')   
 
 
-        fig = plt.figure()
+        fig = plt.figure(figsize=(5,5))
         fig.subplots_adjust(hspace=0)
         fig.set_rasterized(True)
-        plt.figtext(0.15 ,0.97, 'Scatterplot of events sorted according to environment %d' %(env+1))
+        plt.figtext(0.12 ,0.95, 'Scatterplot of events sorted according to environment %d' %(env+1))
         #fig.suptitle('Scatterplot of max events sorted according to environment %d' %(env+1))
 
         ###############################################################################                                 
-        ax1 = plt.subplot2grid((4,4), (0,0), rowspan=4,colspan=4)
-        for scatter_env in range (0,number_of_environments):
-            plt.scatter(data_array[:,2*env],data_array[:,2*scatter_env], color=plot_color[scatter_env],marker=point_marker[scatter_env],label=env_odors[scatter_env])  
-            
-        ax1.legend(scatterpoints=1,fontsize='xx-small',ncol=number_of_environments,bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0)
+        ax1 = plt.subplot2grid((6,6), (0,0), rowspan=5,colspan=5)
         ax1.set_xlabel('Distance bins for environment %s'%env_odors[env])        
         ax1.set_xlim(0,bins_in_environment[env])
         ax1.set_ylim(0,bins_in_environment[env])
 
+        for scatter_env in scatter_plot_environments:
+            if(scatter_env == env):
+                #plt.scatter(data_array[:,2*env],data_array[:,2*scatter_env], color=plot_color[scatter_env],marker="",label=env_odors[scatter_env])
+                plt.plot(ax1.get_xlim(), ax1.get_ylim(), ls="-",color="0.8")
+                
+                #to label the odor sequence on the plots
+                plt.figtext(0.22 ,0.91, "%s"%odor_sequence[0+4*env], fontsize='large', color='k', ha ='left')
+                plt.figtext(0.35,0.91, "%s"%odor_sequence[1+4*env], fontsize='large', color='k', ha ='left')
+                plt.figtext(0.50,0.91, "%s"%odor_sequence[2+4*env], fontsize='large', color='k', ha ='left')            
+                plt.figtext(0.65,0.91, "%s"%odor_sequence[3+4*env], fontsize='large', color='k', ha ='left')
+
+
+            else:
+                plt.scatter(data_array[:,2*env],data_array[:,2*scatter_env], color=plot_color[scatter_env],marker=point_marker[scatter_env],label=env_odors[scatter_env])  
+
+                plt.figtext(0.8,0.32, "%s"%odor_sequence[0+4*scatter_env], fontsize='large', color='k', ha ='left')
+                plt.figtext(0.8,0.47, "%s"%odor_sequence[1+4*scatter_env], fontsize='large', color='k', ha ='left')
+                plt.figtext(0.8,0.61, "%s"%odor_sequence[2+4*scatter_env], fontsize='large', color='k', ha ='left')            
+                plt.figtext(0.8,0.75, "%s"%odor_sequence[3+4*scatter_env], fontsize='large', color='k', ha ='left')
+
+        ax1.legend(scatterpoints=1,fontsize='xx-small',bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        #ax1.legend(scatterpoints=1,fontsize='xx-small',ncol=number_of_environments,bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0)
+        
         #draw colored bands for odor regions
         odor_region_shade = 0.05
         plt.axvspan(odor_start_points[env*5+0]/distance_bin_size, (odor_start_points[env*5+0]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='b', alpha=odor_region_shade)
         plt.axvspan(odor_start_points[env*5+1]/distance_bin_size, (odor_start_points[env*5+1]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
         plt.axvspan(odor_start_points[env*5+2]/distance_bin_size, (odor_start_points[env*5+2]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='g', alpha=odor_region_shade)                    
-        plt.axvspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='m', alpha=odor_region_shade)
-        plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size, linewidth=0.1, color='b')
+        plt.axvspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
 
+        plt.axhspan(odor_start_points[env*5+0]/distance_bin_size, (odor_start_points[env*5+0]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='b', alpha=odor_region_shade)
+        plt.axhspan(odor_start_points[env*5+1]/distance_bin_size, (odor_start_points[env*5+1]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
+        plt.axhspan(odor_start_points[env*5+2]/distance_bin_size, (odor_start_points[env*5+2]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='g', alpha=odor_region_shade)                    
+        plt.axhspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
+        
+        #plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size, linewidth=0.1, color='b')
         fig.add_subplot(ax1)
 
- 
+
         #can be commented out to stop showing all plots in the console
         plt.show()
         figs.append(fig)
@@ -312,7 +336,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
         pdf_name = file_path.replace(".csv","_scatter_plots.pdf")
         pp = PdfPages(pdf_name)
         for fig in figs:
-            pp.savefig(fig,dpi=300,edgecolor='r')
+            pp.savefig(fig,dpi=300)
         pp.close() 
 
 

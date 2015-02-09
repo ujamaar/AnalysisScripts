@@ -9,7 +9,7 @@ directory_path ='/Users/njoshi/Desktop/events_test'
 
 def extract_details_per_frame (dropped_frames):
 
-    missing_frames = numpy.loadtxt(dropped_frames, dtype='int', comments='#', delimiter=',')
+    missing_frames = numpy.loadtxt(dropped_frames, dtype='float', comments='#', delimiter=',')
     print "Number of dropped frames: %d"%missing_frames.size
     
     adjustment_amount= 0
@@ -18,7 +18,7 @@ def extract_details_per_frame (dropped_frames):
     for n in range(0,len(missing_frames)):
         missing_frames[n] = missing_frames[n] + adjustment_amount
     
-    numpy.savetxt(dropped_frames.replace('.csv','_adjusted.csv'), missing_frames, fmt='%d', delimiter=',', newline='\n')    
+    numpy.savetxt(dropped_frames.replace('.csv','_adjusted.csv'), missing_frames, fmt='%1.7f', delimiter=',', newline='\n')    
     
 #to make sure that the files are processed in the proper order (not really important here, but just in case)
 def natural_key(string_):

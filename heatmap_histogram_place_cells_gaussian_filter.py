@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 #from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import numpy as np
+from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 import re
@@ -159,7 +160,9 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ###############################################################################
     
     total_events_per_bin_per_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
-    total_time_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')
+    total_time_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')    
+    laps_with_events_for_each_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
+    env_total_laps_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')
     #average_speed_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')     
     #calculate the place field of each cell
     #place_field = np.zeros((total_number_of_cells,number_of_environments),dtype='float')
@@ -174,12 +177,19 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         #last_frame_bin = 0
         #run thi while loop until all columns have been checked for the cell in this row
         last_evaluated_bin = -1
+        last_lap_with_event = -1
         for frame in range(0,total_number_of_frames):
             #events get counted and summed in each bin only if the mouse is running above a threshold speed at the moment (e.g. 10cm/s in this case)
             if (event_data[cell][frame] > 0 and running_speed[frame] > speed_threshold):
                 bin_for_current_event = env_starts_at_this_bin[environment[frame]-1] + distance[frame] / distance_bin_size
                 current_bin_total_events = total_events_per_bin_per_cell[cell][bin_for_current_event] + event_data[cell][frame]
                 total_events_per_bin_per_cell[cell][bin_for_current_event] = current_bin_total_events
+                
+                if(last_lap_with_event < lap_count[frame]):
+                    laps_with_events_for_each_bin[cell][bin_for_current_event] = laps_with_events_for_each_bin[cell][bin_for_current_event] + 1
+                    last_lap_with_event = lap_count[frame]
+                    env_total_laps_per_bin[bin_for_current_event] = laps_in_environment[environment[frame]-1]
+                
                 #cell_event_locations[environment[frame]-1].append(distance[frame]) #save the location of each "valid" event
 
             #we only need to calculate the total time spent in a bin for one cell (this time has to be same for all cells, here we choose the zeroth cell)
@@ -190,7 +200,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                     total_time_spent_in_this_bin = total_time_per_bin[current_bin] + 5.0 / running_speed[frame] # 5.0cm is divided by speed to get the time spent in the current bin (speed was calculated as time required to cross each 5.0cm stretch of the track)
                     total_time_per_bin[current_bin] = total_time_spent_in_this_bin
                     
-    print total_time_per_bin
+    #print total_time_per_bin
     print 'Total running time: %1.1f seconds'%np.sum(total_time_per_bin)
 
     #np.savetxt(file_path.replace('.csv','_event_data.csv'), total_events_per_bin_per_cell, fmt='%1.2f', delimiter=',', newline='\n') 
@@ -203,29 +213,43 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #            for env_bin in range(env_starts_at_this_bin[env],env_starts_at_this_bin[env+1]):
 #                events_per_lap_per_bin[cell][env_bin] = total_events_per_bin_per_cell[cell][env_bin] / laps_in_this_env
 
-    events_per_second_per_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
+#    events_per_second_per_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
+#    for cell in range(0,total_number_of_cells): 
+#        for env_bin in range(0,total_number_distance_bins_in_all_env):
+#            if(total_time_per_bin[env_bin] > 1.00):
+#                events_per_second_per_bin[cell][env_bin] = total_events_per_bin_per_cell[cell][env_bin] / total_time_per_bin[env_bin]
+#            else:
+#                events_per_second_per_bin[cell][env_bin] = 0.00
+
+
+    laps_with_events_per_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
     for cell in range(0,total_number_of_cells): 
         for env_bin in range(0,total_number_distance_bins_in_all_env):
-            if(total_time_per_bin[env_bin] > 1.00):
-                events_per_second_per_bin[cell][env_bin] = total_events_per_bin_per_cell[cell][env_bin] / total_time_per_bin[env_bin]
+            if(env_total_laps_per_bin[env_bin] > 0.00):
+                laps_with_events_per_bin[cell][env_bin] = laps_with_events_for_each_bin[cell][env_bin] / env_total_laps_per_bin[env_bin]
             else:
-                events_per_second_per_bin[cell][env_bin] = 0.00
+                laps_with_events_per_bin[cell][env_bin] = 0.00
 
 
 
     #np.savetxt(file_path.replace('.csv','_events_per_second_per_bin.csv'), events_per_second_per_bin, fmt='%f', delimiter=',', newline='\n')
 
-    #apply a one dimensional gaussian filter to event data for each cell:
-    gaussian_filtered_event_data = ndimage.gaussian_filter1d(events_per_second_per_bin,sigma=gaussian_filter_sigma,axis=1)
-    #np.savetxt(file_path.replace('.csv','_gaussian_filter_events_per_second_per_bin.csv'), gaussian_filtered_event_data, fmt='%f', delimiter=',', newline='\n') 
+#    #apply a one dimensional gaussian filter to event data for each cell:
+#    gaussian_filtered_event_data = ndimage.gaussian_filter1d(events_per_second_per_bin,sigma=gaussian_filter_sigma,axis=1)
+#    #np.savetxt(file_path.replace('.csv','_gaussian_filter_events_per_second_per_bin.csv'), gaussian_filtered_event_data, fmt='%f', delimiter=',', newline='\n') 
+#
+#    gaussian_filtered_event_data_with_threshold = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
+#    for row in range(0,total_number_of_cells):
+#        for column in range(0,total_number_distance_bins_in_all_env):
+#            if(gaussian_filtered_event_data[row][column] >= 0.25):
+#                gaussian_filtered_event_data_with_threshold[row][column] = gaussian_filtered_event_data[row][column]
+                
 
     gaussian_filtered_event_data_with_threshold = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
     for row in range(0,total_number_of_cells):
         for column in range(0,total_number_distance_bins_in_all_env):
-            if(gaussian_filtered_event_data[row][column] >= 0.25):
-                gaussian_filtered_event_data_with_threshold[row][column] = gaussian_filtered_event_data[row][column]
-                
-
+            if(laps_with_events_per_bin[row][column] > 0.00):
+                gaussian_filtered_event_data_with_threshold[row][column] = laps_with_events_per_bin[row][column]
 
 
 
@@ -248,7 +272,6 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                
         for column in range(2*number_of_environments,place_data_each_cell.shape[1]):
             place_data_each_cell[cell][column] = gaussian_filtered_event_data_with_threshold[cell][column-2*number_of_environments]
-
        
 #        for env in range (0,place_field.shape[1]):
 #            if(len(cell_event_locations[env]) > 0):
@@ -295,7 +318,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
     env_aligned_to_itself_figs = []
 
     #to plot the hitogram of summed events
-    all_histogram_heights = np.sum(place_field_events_each_cell[:,2*number_of_environments:place_field_events_each_cell.shape[1]], axis=0)
+    #all_histogram_heights = np.sum(place_field_events_each_cell[:,2*number_of_environments:place_field_events_each_cell.shape[1]], axis=0)
 
 #    histogram_tick_mark = 1
 #    if(np.max(all_histogram_heights) > 4):
@@ -325,16 +348,16 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
         elif(len(data_array) == data_array_all.shape[1]):
             data_array = np.vstack([np.zeros((1,data_array_all.shape[1])),data_array])            
         
-        np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array[:,0:2*number_of_environments], fmt='%f', delimiter=',', newline='\n')   
+        #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array[:,0:2*number_of_environments], fmt='%f', delimiter=',', newline='\n')   
 
         #for env in range (plot_env,plot_env+1):
-        for env in range (0,0*number_of_environments):
+        for env in range (0,number_of_environments):
             fig = plt.figure()
             fig.subplots_adjust(hspace=0)
             fig.set_rasterized(True)
             fig.suptitle('Environment %d place cell activity sorted according to environment %d' %(env+1,plot_env+1))
 
-            ax  = plt.subplot2grid((4,4), (0,0), rowspan=3,colspan=4)
+            ax  = plt.subplot2grid((4,4), (0,0), rowspan=4,colspan=4)
             
             #to label the odor sequence on the plots
             od = odor_sequence[env*4:(env+1)*4]            
@@ -379,11 +402,13 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             heatmap = ax.pcolormesh(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.jet,vmin=0.00,vmax=0.50) 
             color_legend = plt.colorbar(heatmap,aspect=30)
             color_legend.ax.tick_params(labelsize=5) 
+            #color_legend.set_label('evets per second')
+            plt.figtext(0.765,0.33,'laps with events',fontsize='x-small',rotation=90)
             
             #ax.set_title('%1.1fm track x %d laps     Odor sequence:%s%s%s%s'%(environment_track_lengths[env]/1000.00,laps_in_environment[env],od[0],od[1],od[2],od[3]), fontsize='x-small')
-            #ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+            ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
             ax.xaxis.tick_bottom() 
-            plt.setp(ax.get_xticklabels(),visible=False)
+            plt.setp(ax.get_xticklabels(),visible=True)
             
             plt.xlim (0,bins_in_environment[env])
             plt.ylim (0,data_array.shape[0]) 
@@ -409,48 +434,50 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size, linewidth=0.1, color='w')
             #plt.axvspan(odor_start_points[env*5+4]/distance_bin_size, (odor_start_points[env*5+4]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=0.1)
                 
-            plt.setp(ax.get_yticklabels(), visible=True)
+            #plt.setp(ax.get_yticklabels(), visible=True)
+
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True)) 
             ax.set_ylabel('Cell#')
             fig.add_subplot(ax)
             ###############################################################################
-                            
-            histogram_heights = all_histogram_heights[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]]
-            #np.savetxt(file_path.replace('.csv','_histogram_heights.csv'), histogram_heights, fmt='%i', delimiter=',', newline='\n')  
-            
-            max_histogram_height = max(all_histogram_heights)
-            max_time_per_bin = max(total_time_per_bin)
-            normalized_total_time_per_bin = [((x * max_histogram_height)/max_time_per_bin) for x in total_time_per_bin[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]]]
-            #print histogram_heights
-            #print normalized_total_time_per_bin
-            
-            ax1 = plt.subplot2grid((4,4), (3,0), rowspan=1,colspan=4,sharex=ax)
-            plt.bar(range(bins_in_environment[env]),histogram_heights, width=1, color='g',linewidth=0)
-            plt.plot(range(bins_in_environment[env]),normalized_total_time_per_bin,'r-', linewidth = 0.1)
-            ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
-            ax1.set_ylabel('summed events',fontsize='xx-small')
-            ax1.set_ylim(0,max_histogram_height)
-            plt.setp(ax1.get_yticklabels(),visible=False)
-
-#            ax1.yaxis.set_major_locator(majorLocator)
-#            ax1.yaxis.set_major_formatter(majorFormatter)
-#            #ax1.yaxis.set_minor_locator(minorLocator)
-            
-            color_legend = plt.colorbar(heatmap,aspect=30)
-            fig.delaxes(fig.axes[3]) #here axis 0 = plot in ax, 1 = colorbar in ax, 2 = plot in ax1, 3 = heatmap in ax1
-            #draw colored bands for odor regions
-            odor_region_shade = 0.1
-            plt.axvspan(odor_start_points[env*5+0]/distance_bin_size, (odor_start_points[env*5+0]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='b', alpha=odor_region_shade)
-            plt.axvspan(odor_start_points[env*5+1]/distance_bin_size, (odor_start_points[env*5+1]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
-            plt.axvspan(odor_start_points[env*5+2]/distance_bin_size, (odor_start_points[env*5+2]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='g', alpha=odor_region_shade)                    
-            plt.axvspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='m', alpha=odor_region_shade)
-            plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size, linewidth=0.1, color='b')
- 
-            ax1.spines['bottom'].set_color(plot_color[plot_env])
-            ax1.spines['top'   ].set_color(plot_color[plot_env]) 
-            ax1.spines['right' ].set_color(plot_color[plot_env])
-            ax1.spines['left'  ].set_color(plot_color[plot_env])
-
-            fig.add_subplot(ax1)
+#                            
+#            histogram_heights = all_histogram_heights[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]]
+#            #np.savetxt(file_path.replace('.csv','_histogram_heights.csv'), histogram_heights, fmt='%i', delimiter=',', newline='\n')  
+#            
+#            max_histogram_height = max(all_histogram_heights)
+#            max_time_per_bin = max(total_time_per_bin)
+#            normalized_total_time_per_bin = [((x * max_histogram_height)/max_time_per_bin) for x in total_time_per_bin[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]]]
+#            #print histogram_heights
+#            #print normalized_total_time_per_bin
+#            
+#            ax1 = plt.subplot2grid((4,4), (3,0), rowspan=1,colspan=4,sharex=ax)
+#            plt.bar(range(bins_in_environment[env]),histogram_heights, width=1, color='g',linewidth=0)
+#            plt.plot(range(bins_in_environment[env]),normalized_total_time_per_bin,'r-', linewidth = 0.1)
+#            ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+#            ax1.set_ylabel('summed events',fontsize='xx-small')
+#            ax1.set_ylim(0,max_histogram_height)
+#            plt.setp(ax1.get_yticklabels(),visible=False)
+#
+##            ax1.yaxis.set_major_locator(majorLocator)
+##            ax1.yaxis.set_major_formatter(majorFormatter)
+##            #ax1.yaxis.set_minor_locator(minorLocator)
+#            
+#            color_legend = plt.colorbar(heatmap,aspect=30)
+#            fig.delaxes(fig.axes[3]) #here axis 0 = plot in ax, 1 = colorbar in ax, 2 = plot in ax1, 3 = heatmap in ax1
+#            #draw colored bands for odor regions
+#            odor_region_shade = 0.1
+#            plt.axvspan(odor_start_points[env*5+0]/distance_bin_size, (odor_start_points[env*5+0]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='b', alpha=odor_region_shade)
+#            plt.axvspan(odor_start_points[env*5+1]/distance_bin_size, (odor_start_points[env*5+1]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='r', alpha=odor_region_shade)
+#            plt.axvspan(odor_start_points[env*5+2]/distance_bin_size, (odor_start_points[env*5+2]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='g', alpha=odor_region_shade)                    
+#            plt.axvspan(odor_start_points[env*5+3]/distance_bin_size, (odor_start_points[env*5+3]+odor_start_points[env*5+0]*3)/distance_bin_size, facecolor='m', alpha=odor_region_shade)
+#            plt.axvline(x=odor_start_points[env*5+4]/distance_bin_size, linewidth=0.1, color='b')
+# 
+#            ax1.spines['bottom'].set_color(plot_color[plot_env])
+#            ax1.spines['top'   ].set_color(plot_color[plot_env]) 
+#            ax1.spines['right' ].set_color(plot_color[plot_env])
+#            ax1.spines['left'  ].set_color(plot_color[plot_env])
+#
+#            fig.add_subplot(ax1)
 
 
      
