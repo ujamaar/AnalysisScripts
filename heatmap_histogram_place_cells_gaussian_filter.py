@@ -180,7 +180,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         last_lap_with_event = -1
         for frame in range(0,total_number_of_frames):
             #events get counted and summed in each bin only if the mouse is running above a threshold speed at the moment (e.g. 10cm/s in this case)
-            if (event_data[cell][frame] > 0 and running_speed[frame] > speed_threshold):
+            if (event_data[cell][frame] > 0 and running_speed[frame] > speed_threshold and distance[frame]/distance_bin_size < odor_start_points[(environment[frame]-1)*5+4]/distance_bin_size):
                 bin_for_current_event = env_starts_at_this_bin[environment[frame]-1] + distance[frame] / distance_bin_size
                 current_bin_total_events = total_events_per_bin_per_cell[cell][bin_for_current_event] + event_data[cell][frame]
                 total_events_per_bin_per_cell[cell][bin_for_current_event] = current_bin_total_events
@@ -193,10 +193,13 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                 #cell_event_locations[environment[frame]-1].append(distance[frame]) #save the location of each "valid" event
 
             #we only need to calculate the total time spent in a bin for one cell (this time has to be same for all cells, here we choose the zeroth cell)
-            if (cell == 0 and running_speed[frame] > speed_threshold):
+            if (cell == 0 and running_speed[frame] > speed_threshold and distance[frame]/distance_bin_size < odor_start_points[(environment[frame]-1)*5+4]/distance_bin_size):
                 current_bin = env_starts_at_this_bin[environment[frame]-1] + distance[frame] / distance_bin_size
+
                 if(last_evaluated_bin != current_bin):
                     last_evaluated_bin = current_bin
+                    if(current_bin > 130):
+                        print current_bin
                     total_time_spent_in_this_bin = total_time_per_bin[current_bin] + 5.0 / running_speed[frame] # 5.0cm is divided by speed to get the time spent in the current bin (speed was calculated as time required to cross each 5.0cm stretch of the track)
                     total_time_per_bin[current_bin] = total_time_spent_in_this_bin
                     
@@ -245,10 +248,11 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #                gaussian_filtered_event_data_with_threshold[row][column] = gaussian_filtered_event_data[row][column]
                 
 
+    #to set a lower (or upper) threshold on the data points that actually get plotted
     gaussian_filtered_event_data_with_threshold = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
     for row in range(0,total_number_of_cells):
         for column in range(0,total_number_distance_bins_in_all_env):
-            if(laps_with_events_per_bin[row][column] > 0.00):
+            if(laps_with_events_per_bin[row][column] > 0.25):
                 gaussian_filtered_event_data_with_threshold[row][column] = laps_with_events_per_bin[row][column]
 
 
@@ -399,7 +403,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
 
             #if(plot_env%2 == 0):
             #heatmap = ax.pcolor(normalized_data_array, cmap=plt.cm.Blues) 
-            heatmap = ax.pcolormesh(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.jet,vmin=0.00,vmax=0.50) 
+            heatmap = ax.pcolormesh(data_array[:,env_starts_at_this_bin[env]+2*number_of_environments:env_starts_at_this_bin[env+1]+2*number_of_environments], cmap=plt.cm.jet,vmin=0.20,vmax=0.50) 
             color_legend = plt.colorbar(heatmap,aspect=30)
             color_legend.ax.tick_params(labelsize=5) 
             #color_legend.set_label('evets per second')
@@ -489,7 +493,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.close()
         
     if len(figs) > 0:
-        pdf_name = file_path.replace(".csv","_time_normalized_place_cells.pdf")
+        pdf_name = file_path.replace(".csv","_time_normalized_place_cells_20cm_bin.pdf")
         pp = PdfPages(pdf_name)
         for fig in env_aligned_to_itself_figs:
             pp.savefig(fig,dpi=300,edgecolor='r')
@@ -507,7 +511,7 @@ def main():
     #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
     directory_path ='/Users/njoshi/Desktop/events_test'
     odor_response_time_window = 2000 #time in ms
-    distance_bin_size = 50 #distance bin in mm
+    distance_bin_size = 200 #distance bin in mm
     speed_threshold = 5 #minimum speed in cm/s for seecting evets
     gaussian_filter_sigma = 1.5
     #odor_response_distance_window = 500 #in mm
