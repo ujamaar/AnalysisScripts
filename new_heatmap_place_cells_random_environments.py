@@ -302,48 +302,61 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     
     total_events_per_bin_per_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
     total_time_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')    
+    average_speed_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')   
     
-    for cell in range(0,total_number_of_cells):    
-        if (cell % 50 == 0):
-            print 'Processing cell# %d / %d'%(cell,total_number_of_cells)    
+#    for cell in range(0,total_number_of_cells):    
+#        if (cell % 50 == 0):
+#            print 'Processing cell# %d / %d'%(cell,total_number_of_cells)    
 
-        #run thi while loop until all columns have been checked for the cell in this row
-        last_evaluated_bin = -1
-        last_lap_evaluated_for_events = -1
-        have_not_reached_reward_region_in_this_lap = 1
-        for frame in range(0,total_number_of_frames):
-            track_length_in_this_lap = env_track_lengths[environment[frame]-1]
-            #events get counted and summed in each bin only if the mouse is running above a threshold speed at the moment (e.g. 10cm/s in this case)
-            if((distance[frame] < track_length_in_this_lap) and have_not_reached_reward_region_in_this_lap == 1):                
+    #run this while loop until all columns have been checked for the cell in this row
+    last_evaluated_bin = -1
+    last_lap_evaluated_for_events = -1
+    have_not_reached_reward_region_in_this_lap = 1
+    for frame in range(0,total_number_of_frames):
+        if (frame % 1000 == 0):
+            print 'Processing frame# %d / %d'%(frame,total_number_of_frames)
+            
+        track_length_in_this_lap = env_track_lengths[environment[frame]-1]
+        #events get counted and summed in each bin only if the mouse is running above a threshold speed at the moment (e.g. 10cm/s in this case)
+        if((distance[frame] < track_length_in_this_lap) and have_not_reached_reward_region_in_this_lap == 1):
+            for cell in range(0,total_number_of_cells):          
                 if (event_data[cell][frame] > 0 and running_speed[frame] > speed_threshold):
                     bin_for_current_event = env_starts_at_this_bin[environment[frame]-1] + distance[frame] / distance_bin_size
                     current_bin_total_events = total_events_per_bin_per_cell[cell][bin_for_current_event] + event_data[cell][frame]
                     total_events_per_bin_per_cell[cell][bin_for_current_event] = current_bin_total_events
-#                if(cell == 0 and (lap_count[frame] == 46 or lap_count[frame] == 54 or lap_count[frame] == 91) and distance[frame] > 3900):
-#                    print frame
-#                    print lap_count[frame]
-#                    print distance[frame]
-#                    print 'just crossed the reward location'
 
-            elif((distance[frame] >= track_length_in_this_lap) and last_lap_evaluated_for_events < lap_count[frame]):
-                have_not_reached_reward_region_in_this_lap = 0
-                last_lap_evaluated_for_events = lap_count[frame]
-            elif(last_lap_evaluated_for_events < lap_count[frame]):
-                have_not_reached_reward_region_in_this_lap = 1
-                                
-            #we only need to calculate the total time spent in a bin for one cell (this time has to be same for all cells, here we choose the zeroth cell)
-            # 5.0cm is divided by speed to get the time spent in the current bin (speed was calculated as time required to cross each 50mm stretch of the track)
-            if (cell == 0 and running_speed[frame] > speed_threshold and (distance[frame] < track_length_in_this_lap)):
-                current_bin = env_starts_at_this_bin[environment[frame]-1] + distance[frame]/distance_bin_size
-                if(last_evaluated_bin != current_bin):
-                    last_evaluated_bin = current_bin                   
-                    total_time_spent_in_this_bin = total_time_per_bin[current_bin] + 50.0 / running_speed[frame] 
-                    total_time_per_bin[current_bin] = total_time_spent_in_this_bin
+                #we only need to calculate the total time spent in a bin for one cell (this time has to be same for all cells, here we choose the zeroth cell)
+                # 5.0cm is divided by speed to get the time spent in the current bin (speed was calculated as time required to cross each 50mm stretch of the track)
+                if (cell == 0 and running_speed[frame] > speed_threshold and (distance[frame] < track_length_in_this_lap)):
+                    current_bin = env_starts_at_this_bin[environment[frame]-1] + distance[frame]/distance_bin_size
+                    if(last_evaluated_bin != current_bin):
+                        last_evaluated_bin = current_bin                   
+                        total_time_spent_in_this_bin = total_time_per_bin[current_bin] + 50.0 / running_speed[frame] 
+                        total_time_per_bin[current_bin] = total_time_spent_in_this_bin
+                        sum_of_speeds = average_speed_per_bin[current_bin] + running_speed[frame]
+                        average_speed_per_bin[current_bin] = sum_of_speeds
+
+        elif((distance[frame] >= track_length_in_this_lap) and last_lap_evaluated_for_events < lap_count[frame]):
+            have_not_reached_reward_region_in_this_lap = 0
+            last_lap_evaluated_for_events = lap_count[frame]
+        elif(last_lap_evaluated_for_events < lap_count[frame]):
+            have_not_reached_reward_region_in_this_lap = 1
+                            
+
 
     #np.savetxt(file_path.replace('.csv','_total_events_per_bin.csv'), total_events_per_bin_per_cell, fmt='%i', delimiter=',', newline='\n')                     
     #print total_time_per_bin
     print 'Total running time: %1.1f seconds'%np.sum(total_time_per_bin)
 
+    for current_bin in range(0,total_number_distance_bins_in_all_env):
+        environment_in_this_bin = 0
+        for env in range(0,number_of_environments-1):
+            if(current_bin >= env_starts_at_this_bin[env] and current_bin < env_starts_at_this_bin[env+1]):
+                environment_in_this_bin = env  
+        average_speed_in_current_bin = average_speed_per_bin[current_bin] / laps_in_environment[environment_in_this_bin]
+        average_speed_per_bin[current_bin] = average_speed_in_current_bin
+    
+    print average_speed_per_bin
 
     ###############################################################################
     ########################calculate events per lap ##############################
@@ -434,7 +447,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #    np.savetxt(file_path.replace('.csv','_gaussian_filtered_events_per_second_ranked.csv'), place_data_each_cell, fmt='%f', delimiter=',', newline='\n')            
 
     #now send the data for plotting:
-    generate_plots(file_path, place_data_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence_in_letters,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity)
+    generate_plots(file_path, place_data_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence_in_letters,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin)
 
     ###############################################################################
     ########################done generating data for plots ########################
@@ -447,7 +460,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 ###############################################################################
 ###############################################################################
 #based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
-def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity):
+def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin):
 
     figs = []
 #    env_aligned_to_itself_figs = []
@@ -474,7 +487,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
         elif(len(data_array) == data_array_all.shape[1]):
             data_array = np.vstack([np.zeros((1,data_array_all.shape[1])),data_array])            
         
-        np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array[:,0:2*number_of_environments], fmt='%f', delimiter=',', newline='\n')   
+        #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array[:,0:2*number_of_environments], fmt='%f', delimiter=',', newline='\n')   
 
         #for env in range (plot_env,plot_env+1):
         for env in range (0,number_of_environments):
@@ -511,7 +524,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.figtext(0.84,0.45,"min speed: %dmm/s" %speed_threshold,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.4,"Sigma: %1.1f" %gaussian_filter_sigma,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.35,"min.activity: %1.3f" %lower_threshold_for_activity,     fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.25,"Cells in env: %d" %data_array.shape[0],                 fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.3,"Cells in env: %d" %data_array.shape[0],                  fontsize='x-small', color=plot_color[plot_env], ha ='left')
 
             plt.figtext(0.03,0.15,"%d" %data_array.shape[0],                               fontsize='large', color = plot_color[plot_env], ha ='left')
             plt.figtext(0.02,0.10,"cells",                                                 fontsize='large', color = plot_color[plot_env], ha ='left')
@@ -525,14 +538,28 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             #color_legend.set_label('evets per second')
             plt.figtext(0.765,0.6,'events per sec (normalized to max bin)',fontsize='x-small',rotation=90)
             
-            #ax.set_title('%1.1fm track x %d laps     Odor sequence:%s%s%s%s'%(environment_track_lengths[env]/1000.00,laps_in_environment[env],od[0],od[1],od[2],od[3]), fontsize='x-small')
-            ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
-            ax.xaxis.tick_bottom() 
-            plt.setp(ax.get_xticklabels(),visible=True)
+#            #ax.set_title('%1.1fm track x %d laps     Odor sequence:%s%s%s%s'%(environment_track_lengths[env]/1000.00,laps_in_environment[env],od[0],od[1],od[2],od[3]), fontsize='x-small')
+#            ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+#            ax.xaxis.tick_bottom() 
+#            plt.setp(ax.get_xticklabels(),visible=True)
+
+
+            ax.xaxis.tick_bottom()
+            if(env_track_lengths[env] == 4000):
+                ax.set_xlabel('Distance(m)')
+                plt.setp(ax,xticklabels=['0','0.5','1','1.5','2','2.5','3','3.5','4'],visible=True)
+            elif(env_track_lengths[env] == 8000):
+                ax.set_xlabel('Distance(m)')
+                plt.setp(ax,xticklabels=['0','1','2','3','4','5','6','7','8'],visible=True)
+            else:
+                ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+                plt.setp(ax.get_xticklabels(),visible=True)
+
             
             plt.xlim (0,bins_in_environment[env])
             plt.ylim (0,data_array.shape[0]) 
             plt.gca().invert_yaxis()
+
                         
             #draw white lines to mark odor regions
             plt.axvline(x=odor_start_and_end_points[env*6+0]/distance_bin_size, linewidth=0.2, color='w')
@@ -558,6 +585,61 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
 #                env_aligned_to_itself_figs.append(fig)                
             plt.close()
 
+
+    for env in range (0,number_of_environments):
+        fig = plt.figure()
+        fig.subplots_adjust(hspace=0)
+        fig.set_rasterized(True)
+        fig.suptitle('Env %d average speed (normalized to max average speed)' %(env+1)) 
+
+        this_env_average_speed_per_bin = average_speed_per_bin[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]]
+        #np.savetxt(file_path.replace('.csv','_histogram_heights.csv'), histogram_heights, fmt='%i', delimiter=',', newline='\n')  
+        
+        max_average_speed = max(average_speed_per_bin)
+        #max_time_per_bin = max(total_time_per_bin)
+        normalized_average_speed = [(x / max_average_speed) for x in this_env_average_speed_per_bin]
+        #print histogram_heights
+        #print normalized_total_time_per_bin
+        
+        ax1 = plt.subplot2grid((4,4), (0,0), rowspan=4,colspan=4)
+        #plt.bar(range(bins_in_environment[env]),histogram_heights, width=1, color='g',linewidth=0)
+        plt.plot(range(bins_in_environment[env]),normalized_average_speed,'r-', linewidth = 0.1)
+        #ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+        ax1.set_ylabel('Normalized Average Speed',fontsize='large')
+        #ax1.set_ylim(0,1)
+        plt.setp(ax1.get_yticklabels(),visible=True)
+
+        ax1.xaxis.tick_bottom()
+        if(env_track_lengths[env] == 4000):
+            ax1.set_xlabel('Distance(m)')
+            plt.setp(ax1,xticklabels=['0','0.5','1','1.5','2','2.5','3','3.5','4'],visible=True)
+        elif(env_track_lengths[env] == 8000):
+            ax1.set_xlabel('Distance(m)')
+            plt.setp(ax1,xticklabels=['0','1','2','3','4','5','6','7','8'],visible=True)
+        else:
+            ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+            plt.setp(ax1.get_xticklabels(),visible=True)
+
+        #to label the odor sequence on the plots
+        od = odor_sequence[env*3:(env+1)*3] 
+        plt.figtext(0.35,0.91, "%s"%od[0], fontsize='large', color=plot_color[plot_env], ha ='left')
+        plt.figtext(0.55,0.91, "%s"%od[1], fontsize='large', color=plot_color[plot_env], ha ='left')
+        plt.figtext(0.75,0.91, "%s"%od[2], fontsize='large', color=plot_color[plot_env], ha ='left') 
+        
+        #color_legend = plt.colorbar(heatmap,aspect=30)
+        #fig.delaxes(fig.axes[3]) #here axis 0 = plot in ax, 1 = colorbar in ax, 2 = plot in ax1, 3 = heatmap in ax1
+
+        plt.axvline(x=odor_start_and_end_points[env*6+0]/distance_bin_size, linewidth=0.2, color='b')
+        plt.axvline(x=odor_start_and_end_points[env*6+1]/distance_bin_size, linewidth=0.2, color='b')
+        plt.axvline(x=odor_start_and_end_points[env*6+2]/distance_bin_size, linewidth=0.2, color='r')
+        plt.axvline(x=odor_start_and_end_points[env*6+3]/distance_bin_size, linewidth=0.2, color='r')
+        plt.axvline(x=odor_start_and_end_points[env*6+4]/distance_bin_size, linewidth=0.2, color='m')
+        plt.axvline(x=odor_start_and_end_points[env*6+5]/distance_bin_size, linewidth=0.2, color='m')
+ 
+        fig.add_subplot(ax1)
+        plt.show()
+        figs.append(fig)               
+        plt.close()
 
     
     if len(figs) > 0:
@@ -595,7 +677,7 @@ def main():
     distance_bin_size = 50 #distance bin in mm
     speed_threshold = 50 #minimum speed in mm/s for selecting events
     gaussian_filter_sigma = 2.00
-    lower_threshold_for_activity = 0.10
+    lower_threshold_for_activity = 0.20
     #env_track_lengths = [4000,4000,4000,4000]
     #odor_response_distance_window = 500 #in mm
     
