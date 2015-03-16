@@ -7,7 +7,8 @@ Created on Wed Jul 30 18:52:38 2014
 #something for inspiration: http://matplotlib.org/examples/pylab_examples/multiple_yaxis_with_spines.html
 import numpy
 import os
-from pylab import *
+import time
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import re
 
@@ -17,7 +18,7 @@ directory_path ='/Users/njoshi/Desktop/events_test'
 
 def generate_graph(filename,track_length):
     
-    behavior_data = np.loadtxt(filename, dtype='int', delimiter=',',skiprows=2)
+    behavior_data = numpy.loadtxt(filename, dtype='int', delimiter=',',skiprows=2)
 
     #column 0 = frame number
     #column 1 = time
@@ -87,6 +88,11 @@ def generate_graph(filename,track_length):
 #            speed[line-1] = current_speed
 ##            for blank_line in range(last_line_fill,line+1):
 ##                speed[blank_line] = current_speed          
+#
+####################################################################      
+##done calculating speed(measured as time taken to travel each 50mm stretch of the track):
+####################################################################
+
 
 ###################################################################      
 #Calculate speed(measured as distance traveled every 500ms):
@@ -124,6 +130,10 @@ def generate_graph(filename,track_length):
         #at the end of the recording
         elif(line == len(behavior_data)-1): 
             speed[line] = (s2 - s1)*100.00/(t2 - t1) #speed is in cm/s      
+
+###################################################################      
+#done calculating speed(measured as distance traveled every 500ms):
+###################################################################
                 
 
 ###################################################################      
@@ -131,15 +141,17 @@ def generate_graph(filename,track_length):
 ###################################################################
     
     figs = []
+
     
     #get the total number of laps in this recording
-    lap_count = np.int(max(behavior_data[:,9])) + 1
+    lap_count = numpy.int(max(behavior_data[:,9])) + 1
     print 'Total number of laps: %d' %lap_count
 
     color_options = ['y','b','g','r','c','m']   
     
     #now generate the plots    
     for current_lap in range(0,lap_count):
+        time_data_point = time.time()
         print current_lap+1
 
         x1 = []
@@ -159,18 +171,19 @@ def generate_graph(filename,track_length):
         
         last_row_in_current_lap = 0
         for row in range(1,len(behavior_data)):
-            if (behavior_data[row][9] == current_lap):
+            if (behavior_data[row][9] == current_lap and speed[row] != speed[row-1]):
                 #speed vs. distance
                 if speed[row] != 0:
                     x1.append(behavior_data[row][7])
                     y1.append(speed[row])
-                
+
+            if (behavior_data[row][9] == current_lap):                
                 #rewards vs. distance
                 if behavior_data[row][4] > behavior_data[row-1][4]:
                     x2.append(behavior_data[row][7])
                     y2.append(behavior_data[row][4])
                         
-                #licsk vs. distance
+                #licks vs. distance
                 if behavior_data[row][3] > behavior_data[row-1][3]:
                     x3.append(behavior_data[row][7])
                     y3.append(behavior_data[row][3])
@@ -194,14 +207,16 @@ def generate_graph(filename,track_length):
 #now plot the data in a figure (with 4 subplots in this case):
 ###################################################################
 
-        fig = figure()
-        
-        subplots_adjust(hspace=0)
-        figtext(0.45,0.96, "Lap: %s"%(current_lap+1), fontsize='large', color='k', ha ='left') 
+
+        time_figure_plot = time.time()         
+        fig = plt.figure()        
+        fig.subplots_adjust(hspace=0)
+#        fig.set_rasterized(True)
+        plt.figtext(0.45,0.96, "Lap: %s"%(current_lap+1), fontsize='large', color='k', ha ='left') 
 
         #print x1
         #print y1                       
-        ax1 = subplot(311)
+        ax1 = plt.subplot(311)
         ax1.plot(x1,y1,'b-', linewidth = 0.01)
         for odor in range(0,len(x4)/2):
             #shade the odor region in a light color
@@ -209,11 +224,11 @@ def generate_graph(filename,track_length):
             
             #label the odor numbers just above the plot in red color          
             if(x4[odor*2] % (track_length/4 - 100) < 200):
-                figtext(0.3,0.91, "%s"%y4[odor*2], fontsize='large', color='r', ha ='left')
+                plt.figtext(0.3,0.91, "%s"%y4[odor*2], fontsize='large', color='r', ha ='left')
             elif(x4[odor*2] % (track_length/2 - 100) < 200):
-                figtext(0.46,0.91, "%s"%y4[odor*2], fontsize='large', color='r', ha ='left')
+                plt.figtext(0.46,0.91, "%s"%y4[odor*2], fontsize='large', color='r', ha ='left')
             elif(x4[odor*2] % ((3*track_length)/4 - 100) < 200):
-                figtext(0.62,0.91, "%s"%y4[odor*2], fontsize='large', color='r', ha ='left')  
+                plt.figtext(0.62,0.91, "%s"%y4[odor*2], fontsize='large', color='r', ha ='left')  
 
         if len(x5) > 0:
             ax1.vlines(x5,0,y5, color = 'r', linewidth = 0.01) #to mark the presentation of initial drop
@@ -224,62 +239,48 @@ def generate_graph(filename,track_length):
         ax1.set_ylabel('Speed(cm/s)', fontsize='xx-small')
         ax1.tick_params(axis='both', which='major', labelsize=5)
         #ax1.set_title(filename, fontsize=10)
-        xlim(0,track_length + track_length/4) 
-        ylim(0,100)
+        plt.xlim(0,track_length + track_length/4)
+        plt.ylim(0,100)
 
 
-        ax2 = subplot(312, sharex=ax1)
+        ax2 = plt.subplot(312, sharex=ax1)
         ax2.vlines(x2,0,y2, color='r', linewidth = 0.01)
         for odor in range(0,len(x4)/2):
             ax2.axvspan(x4[odor*2], x4[odor*2+1], facecolor=color_options[y4[odor*2]], alpha=0.1,linewidth=0.1)
         ax2.set_ylabel('Rewards', fontsize='xx-small')
-        ylim(0,1)      
-        
-        ax3 = subplot(313, sharex=ax1)
+        plt.ylim(0,1)      
+
+       
+        ax3 = plt.subplot(313, sharex=ax1)
         ax3.vlines(x3,0,y3,color = 'g', linewidth = 0.01)
         #ax3.vlines(x6,0,y6, color ='r', linewidth = 0.01)
         for odor in range(0,len(x4)/2):
             ax3.axvspan(x4[odor*2], x4[odor*2+1], facecolor=color_options[y4[odor*2]], alpha=0.1,linewidth=0.1)
         ax3.set_ylabel('Licks', fontsize='xx-small')
         ax3.set_xlabel('Distance along the virtual track(mm)', fontsize='small')
-        xlim(0,track_length + track_length/4)
-        ylim(0,1)
-        
-#        ax4 = subplot(414, sharex=ax1)
-#        #ax4.plot(x4,y4,'r-', linewidth = 0.01)
-#        for odor in range(0,len(x4)/2):
-#            ax4.axvspan(x4[odor*2], x4[odor*2+1], facecolor=color_options[y4[odor*2]], alpha=0.5,linewidth=0.1)
-#            if(x4[odor*2]%900 < 200):
-#                figtext(0.3,0.2, "%s"%y4[odor*2], fontsize='large', color='k', ha ='left')
-#            elif(x4[odor*2]%1900 < 200):
-#                figtext(0.46,0.2, "%s"%y4[odor*2], fontsize='large', color='k', ha ='left')
-#            elif(x4[odor*2]%2900 < 200):
-#                figtext(0.62,0.2, "%s"%y4[odor*2], fontsize='large', color='k', ha ='left')                
-#        ax4.vlines(x5,0,y5, color = 'b', linewidth = 0.01)
-#        ax4.set_ylabel('Odor', fontsize='xx-small')
-#        ax4.set_xlabel('Distance along the virtual track(mm)', fontsize='xx-small')
-#        xlim(0,5000)
-#        ylim(0,4)
-  
-        
+        plt.xlim(0,track_length + track_length/4)
+        plt.ylim(0,1)
+                
         xticklabels = ax1.get_xticklabels()+ax2.get_xticklabels() #+ax3.get_xticklabels()  
-        setp(xticklabels, visible=False)
+        plt.setp(xticklabels, visible=False)
 
         yticklabels = ax2.get_yticklabels()+ax3.get_yticklabels() #+ax4.get_yticklabels()  
-        setp(yticklabels, visible=False)
+        plt.setp(yticklabels, visible=False)
         
         #to set line width of the axes
         for axis in ['top','bottom','left','right']:
           ax1.spines[axis].set_linewidth(0.01)  
           ax2.spines[axis].set_linewidth(0.01) 
-          ax3.spines[axis].set_linewidth(0.01) 
-          #ax4.spines[axis].set_linewidth(0.01) 
+          ax3.spines[axis].set_linewidth(0.01)  
         
         figs.append(fig)
         
         #plt.annotate()
         plt.close()
 
+        #time_done_with_this_lap = 
+        print 'time for preparing data = %f'%(time_figure_plot - time_data_point)
+        print 'time for plotting  data = %f'%(time.time() - time_figure_plot)
 ###################################################################      
 #Save all plots in a pdf file in the same folder as the source data file:
 ###################################################################

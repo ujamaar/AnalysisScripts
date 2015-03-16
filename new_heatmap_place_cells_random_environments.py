@@ -10,7 +10,112 @@ import re
 from scipy import ndimage
 #import math
 
-def read_data_and_generate_plots(file_path,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity):
+
+def split_laps_into_earlier_and_later(old_env_seq,total_number_of_frames, lap_count,laps_in_environment):  
+    #################separate the earlier and later trials of each environment equally#################
+
+    new_environment_sequence = np.zeros(total_number_of_frames,dtype='int')
+        
+    env1_half_laps = 0
+    env2_half_laps = 0
+    
+    if (len(laps_in_environment) == 2): #if there are two environments originally
+        env1_half_laps = laps_in_environment[0] / 2
+        env2_half_laps = laps_in_environment[1] / 2
+    elif (len(laps_in_environment) == 1): #if there's only one environment originally
+        env1_half_laps = laps_in_environment[0] / 2
+        env2_half_laps = 0
+    
+    env1_lap_count = 0
+    env2_lap_count = 0
+    
+    for frame in range(0,total_number_of_frames-1):
+        frame_env = old_env_seq[frame]
+        frame_lap = lap_count[frame]
+        next_frame_lap = lap_count[frame+1]
+
+        if(frame_lap == next_frame_lap and frame_env == 1 and env1_lap_count < env1_half_laps):
+            new_environment_sequence[frame] = 1
+        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and env1_lap_count < env1_half_laps):
+            new_environment_sequence[frame] = 1
+            env1_lap_count = env1_lap_count + 1
+
+        elif(frame_lap == next_frame_lap and frame_env == 1 and env1_lap_count >= env1_half_laps):
+            new_environment_sequence[frame] = 2
+        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and env1_lap_count >= env1_half_laps):
+            new_environment_sequence[frame] = 2
+            env1_lap_count = env1_lap_count + 1
+
+        elif(frame_lap == next_frame_lap and frame_env == 2 and env2_lap_count < env2_half_laps):
+            new_environment_sequence[frame] = 3
+        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and env2_lap_count < env2_half_laps):
+            new_environment_sequence[frame] = 3
+            env2_lap_count = env2_lap_count + 1
+
+        elif(frame_lap == next_frame_lap and frame_env == 2 and env2_lap_count >= env2_half_laps):
+            new_environment_sequence[frame] = 4
+        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and env2_lap_count >= env2_half_laps):
+            new_environment_sequence[frame] = 4
+            env2_lap_count = env2_lap_count + 1
+        else:
+            new_environment_sequence[frame] = -1  
+            print 'There is an unexpected environment value in this file'
+
+    new_environment_sequence[total_number_of_frames -1] = new_environment_sequence[total_number_of_frames -2]
+ 
+    print 'Env 1 total lap count is: %d'%env1_lap_count
+    print 'Env 2 total lap count is: %d'%env2_lap_count
+    print 'Env 1 first half laps: %d'%env1_half_laps
+    print 'Env 2 first half laps: %d'%env2_half_laps   
+    return new_environment_sequence
+    ############### done separating the earlier and later trials of each environment equally############
+
+
+def split_laps_into_odd_and_even(old_env_seq,total_number_of_frames, lap_count):       
+    #################separate odd and even trials of each environment#################
+
+    new_environment_sequence = np.zeros(total_number_of_frames,dtype='int')
+    last_env1 = 2
+    last_env2 = 4
+    for frame in range(0,total_number_of_frames-1):
+        frame_env = old_env_seq[frame]
+        frame_lap = lap_count[frame]
+        next_frame_lap = lap_count[frame+1]
+
+        if(frame_lap == next_frame_lap and frame_env == 1 and last_env1 == 2):
+            new_environment_sequence[frame] = 1
+        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and last_env1 == 2):
+            new_environment_sequence[frame] = 1
+            last_env1 = 1
+
+        elif(frame_lap == next_frame_lap and frame_env == 1 and last_env1 == 1):
+            new_environment_sequence[frame] = 2
+        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and last_env1 == 1):
+            new_environment_sequence[frame] = 2
+            last_env1 = 2
+
+        elif(frame_lap == next_frame_lap and frame_env == 2 and last_env2 == 4):
+            new_environment_sequence[frame] = 3
+        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and last_env2 == 4):
+            new_environment_sequence[frame] = 3
+            last_env2 = 3
+
+        elif(frame_lap == next_frame_lap and frame_env == 2 and last_env2 == 3):
+            new_environment_sequence[frame] = 4
+        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and last_env2 == 3):
+            new_environment_sequence[frame] = 4
+            last_env2 = 4
+        else:
+            new_environment_sequence[frame] = -1
+            print 'There is an unexpected environment value in this file'
+
+    new_environment_sequence[total_number_of_frames -1] = new_environment_sequence[total_number_of_frames -2]
+    return new_environment_sequence
+    ################# done separating odd and even trials of each environment#################
+
+
+
+def read_data_and_generate_plots(file_path,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment):
     
     event_data = np.loadtxt(file_path, dtype='int', delimiter=',')
     #event_data = event_data[0:22,0:5]
@@ -84,7 +189,6 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 
 
 
-
     ###############################################################################
     #################separate the different laps in each environment###############
     ############ uncomment to choose odd vs even or earlier vs later ##############
@@ -98,27 +202,27 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #        frame_lap = lap_count[frame]
 #        next_frame_lap = lap_count[frame+1]
 #
-#        if(frame_lap == next_frame_lap and frame_env == 1 and last_env1 == 3):
+#        if(frame_lap == next_frame_lap and frame_env == 1 and last_env1 == 2):
 #            environment[frame] = 1
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and last_env1 == 3):
+#        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and last_env1 == 2):
 #            environment[frame] = 1
 #            last_env1 = 1
 #
 #        elif(frame_lap == next_frame_lap and frame_env == 1 and last_env1 == 1):
-#            environment[frame] = 3
+#            environment[frame] = 2
 #        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and last_env1 == 1):
-#            environment[frame] = 3
-#            last_env1 = 3
+#            environment[frame] = 2
+#            last_env1 = 2
 #
 #        elif(frame_lap == next_frame_lap and frame_env == 2 and last_env2 == 4):
-#            environment[frame] = 2
+#            environment[frame] = 3
 #        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and last_env2 == 4):
-#            environment[frame] = 2
-#            last_env2 = 2
+#            environment[frame] = 3
+#            last_env2 = 3
 #
-#        elif(frame_lap == next_frame_lap and frame_env == 2 and last_env2 == 2):
+#        elif(frame_lap == next_frame_lap and frame_env == 2 and last_env2 == 3):
 #            environment[frame] = 4
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and last_env2 == 2):
+#        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and last_env2 == 3):
 #            environment[frame] = 4
 #            last_env2 = 4
 #        else:
@@ -130,7 +234,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 
 #    #################separate the earlier and later trials of each environment equally#################
 #    env1_half_laps = laps_in_environment[0] / 2
-#    env2_half_laps = laps_in_environment[1] / 2
+#    env2_half_laps = 0 #laps_in_environment[1] / 2
 #    
 #    env1_lap_count = 0
 #    env2_lap_count = 0
@@ -147,15 +251,15 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #            env1_lap_count = env1_lap_count + 1
 #
 #        elif(frame_lap == next_frame_lap and frame_env == 1 and env1_lap_count >= env1_half_laps):
-#            environment[frame] = 3
+#            environment[frame] = 2
 #        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and env1_lap_count >= env1_half_laps):
-#            environment[frame] = 3
+#            environment[frame] = 2
 #            env1_lap_count = env1_lap_count + 1
 #
 #        elif(frame_lap == next_frame_lap and frame_env == 2 and env2_lap_count < env2_half_laps):
-#            environment[frame] = 2
+#            environment[frame] = 3
 #        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and env2_lap_count < env2_half_laps):
-#            environment[frame] = 2
+#            environment[frame] = 3
 #            env2_lap_count = env2_lap_count + 1
 #
 #        elif(frame_lap == next_frame_lap and frame_env == 2 and env2_lap_count >= env2_half_laps):
@@ -173,39 +277,73 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #    print 'Env 1 total lap count is: %d'%env1_lap_count
 #    print 'Env 2 total lap count is: %d'%env2_lap_count
 #    ############### done separating the earlier and later trials of each environment equally############
-#
-#
-#
-#
-#    
-#    #after separating the odd and even trials of each environment, we have doubled the total number of environment in this context
-#    #number_of_environments = number_of_environments * 2
-#    number_of_environments = max(environment)
-#    print 'Number of environments after separating even and odd trials = %d' %number_of_environments
-#
-#    #find out the sequence in which odor environments were presented
-#    environment_sequence = [environment[1]] # save the first environment
-#    
-#    #remaining environments
-#    for column in range(1,total_number_of_frames):
-#        if(lap_count[column] > lap_count[column-1]):
-#            environment_sequence.append(environment[column])
-#    
-#    print 'Environments are presented in this sequence (after separating odd and even trials):'
-#    print environment_sequence
-#
-#    laps_in_environment = np.zeros(number_of_environments,dtype='int')        
-#    for env in range(0,len(environment_sequence)):
-#        for current_env in range(0,number_of_environments):
-#            if(environment_sequence[env] == current_env+1):
-#                laps_in_environment[current_env] = laps_in_environment[current_env] + 1   
-#
-#    print 'Number of laps in each enviornment after separating odd and even trials:'
-#    print laps_in_environment
-#   
-#    ###############################################################################
-#    ###### end of steps to separate the different laps in each environment ########
-#    ###############################################################################    
+
+    ###############################################################################
+    #################separate the different laps in each environment###############
+    ############ uncomment to choose odd vs even or earlier vs later ##############
+    ###############################################################################
+
+
+    if(split_laps_in_environment == 5050):
+        environment = split_laps_into_earlier_and_later(environment,total_number_of_frames, lap_count,laps_in_environment)
+
+        #after separating the odd and even trials of each environment, we have doubled the total number of environment in this context
+        #number_of_environments = number_of_environments * 2
+        number_of_environments = max(environment)
+        print 'Number of environments after separating earlier and later trials = %d' %number_of_environments
+    
+        #find out the sequence in which odor environments were presented
+        environment_sequence = [environment[1]] # save the first environment
+        
+        #remaining environments
+        for column in range(1,total_number_of_frames):
+            if(lap_count[column] > lap_count[column-1]):
+                environment_sequence.append(environment[column])
+        
+        print 'Environments are presented in this sequence (after separating earlier and later trials):'
+        print environment_sequence
+    
+        laps_in_environment = np.zeros(number_of_environments,dtype='int')        
+        for env in range(0,len(environment_sequence)):
+            for current_env in range(0,number_of_environments):
+                if(environment_sequence[env] == current_env+1):
+                    laps_in_environment[current_env] = laps_in_environment[current_env] + 1   
+    
+        print 'Number of laps in each enviornment after separating earlier and later trials:'
+        print laps_in_environment
+
+    elif(split_laps_in_environment == 1122):
+        environment = split_laps_into_odd_and_even(environment,total_number_of_frames, lap_count)        
+        
+        #after separating the odd and even trials of each environment, we have doubled the total number of environment in this context
+        #number_of_environments = number_of_environments * 2
+        number_of_environments = max(environment)
+        print 'Number of environments after separating even and odd trials = %d' %number_of_environments
+    
+        #find out the sequence in which odor environments were presented
+        environment_sequence = [environment[1]] # save the first environment
+        
+        #remaining environments
+        for column in range(1,total_number_of_frames):
+            if(lap_count[column] > lap_count[column-1]):
+                environment_sequence.append(environment[column])
+        
+        print 'Environments are presented in this sequence (after separating odd and even trials):'
+        print environment_sequence
+    
+        laps_in_environment = np.zeros(number_of_environments,dtype='int')        
+        for env in range(0,len(environment_sequence)):
+            for current_env in range(0,number_of_environments):
+                if(environment_sequence[env] == current_env+1):
+                    laps_in_environment[current_env] = laps_in_environment[current_env] + 1   
+    
+        print 'Number of laps in each enviornment after separating odd and even trials:'
+        print laps_in_environment
+
+   
+    ###############################################################################
+    ###### end of steps to separate the different laps in each environment ########
+    ###############################################################################    
     
     
     
@@ -309,7 +447,8 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #            print 'Processing cell# %d / %d'%(cell,total_number_of_cells)    
 
     #run this while loop until all columns have been checked for the cell in this row
-    last_evaluated_bin = -1
+    last_bin_evaluated_for_total_time_per_bin = -1
+    last_bin_evaluated_for_average_speed = -1
     last_lap_evaluated_for_events = -1
     have_not_reached_reward_region_in_this_lap = 1
     for frame in range(0,total_number_of_frames):
@@ -321,20 +460,30 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         if((distance[frame] < track_length_in_this_lap) and have_not_reached_reward_region_in_this_lap == 1):
             for cell in range(0,total_number_of_cells):          
                 if (event_data[cell][frame] > 0 and running_speed[frame] > speed_threshold):
-                    bin_for_current_event = env_starts_at_this_bin[environment[frame]-1] + distance[frame] / distance_bin_size
-                    current_bin_total_events = total_events_per_bin_per_cell[cell][bin_for_current_event] + event_data[cell][frame]
-                    total_events_per_bin_per_cell[cell][bin_for_current_event] = current_bin_total_events
+#                    current_bin = env_starts_at_this_bin[ lap_count[frame] / 50] + distance[frame] / distance_bin_size
+                    current_bin = env_starts_at_this_bin[environment[frame]-1] + distance[frame] / distance_bin_size
+                    current_bin_total_events = total_events_per_bin_per_cell[cell][current_bin] + event_data[cell][frame]
+                    total_events_per_bin_per_cell[cell][current_bin] = current_bin_total_events
 
                 #we only need to calculate the total time spent in a bin for one cell (this time has to be same for all cells, here we choose the zeroth cell)
                 # 5.0cm is divided by speed to get the time spent in the current bin (speed was calculated as time required to cross each 50mm stretch of the track)
-                if (cell == 0 and running_speed[frame] > speed_threshold and (distance[frame] < track_length_in_this_lap)):
+                if (cell == 0 and running_speed[frame] > speed_threshold):
+#                    current_bin = env_starts_at_this_bin[ lap_count[frame] / 50] + distance[frame] / distance_bin_size
                     current_bin = env_starts_at_this_bin[environment[frame]-1] + distance[frame]/distance_bin_size
-                    if(last_evaluated_bin != current_bin):
-                        last_evaluated_bin = current_bin                   
+                    if(last_bin_evaluated_for_total_time_per_bin != current_bin):
+                        last_bin_evaluated_for_total_time_per_bin = current_bin                   
                         total_time_spent_in_this_bin = total_time_per_bin[current_bin] + 50.0 / running_speed[frame] 
                         total_time_per_bin[current_bin] = total_time_spent_in_this_bin
+                
+                #calculate average speed per bin for each environment
+                if (cell == 0):
+#                    current_bin = env_starts_at_this_bin[ lap_count[frame] / 50] + distance[frame] / distance_bin_size
+                    current_bin = env_starts_at_this_bin[environment[frame]-1] + distance[frame]/distance_bin_size
+                    if(last_bin_evaluated_for_average_speed != current_bin):
+                        last_bin_evaluated_for_average_speed = current_bin                   
                         sum_of_speeds = average_speed_per_bin[current_bin] + running_speed[frame]
                         average_speed_per_bin[current_bin] = sum_of_speeds
+
 
         elif((distance[frame] >= track_length_in_this_lap) and last_lap_evaluated_for_events < lap_count[frame]):
             have_not_reached_reward_region_in_this_lap = 0
@@ -347,6 +496,10 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     #np.savetxt(file_path.replace('.csv','_total_events_per_bin.csv'), total_events_per_bin_per_cell, fmt='%i', delimiter=',', newline='\n')                     
     #print total_time_per_bin
     print 'Total running time: %1.1f seconds'%np.sum(total_time_per_bin)
+
+    print average_speed_per_bin
+
+    print 'Normalized average speeds:'
 
     for current_bin in range(0,total_number_distance_bins_in_all_env):
         environment_in_this_bin = 0
@@ -447,7 +600,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #    np.savetxt(file_path.replace('.csv','_gaussian_filtered_events_per_second_ranked.csv'), place_data_each_cell, fmt='%f', delimiter=',', newline='\n')            
 
     #now send the data for plotting:
-    generate_plots(file_path, place_data_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence_in_letters,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin)
+    generate_plots(file_path, place_data_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence_in_letters,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin,split_laps_in_environment)
 
     ###############################################################################
     ########################done generating data for plots ########################
@@ -460,7 +613,17 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 ###############################################################################
 ###############################################################################
 #based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
-def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin):
+def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin,split_laps_in_environment):
+
+    #to stamp each figure heading with the mouse ID and data of recording
+    name_of_this_file = file_path[-42:-24]
+    sequence_of_environments = ''
+    for env in range(0,number_of_environments):
+        sequence_of_environments = sequence_of_environments + odor_sequence[3*env] + odor_sequence[3*env+1] + odor_sequence[3*env+2]
+        if(env < number_of_environments-1):
+            sequence_of_environments = sequence_of_environments + '-'
+    print 'This is the sequence of environments: %s' %sequence_of_environments
+
 
     figs = []
 #    env_aligned_to_itself_figs = []
@@ -470,6 +633,9 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
     #use a different plot legend color for each environment
     #plot_color = ['r','b','g','m','c','y']  
     plot_color = ['r','r','r','r','r','r'] 
+    earlierORlater=['(earlier trials)','(later trials)','(earlier trials)','(later trials)']            
+    oddOReven=['(odd trials)','(even trials)','(odd trials)','(even trials)']
+
     
     for plot_env in range (0,number_of_environments):
         data_array_all = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,plot_env*2],kind='quicksort')]
@@ -494,14 +660,16 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             fig = plt.figure()
             fig.subplots_adjust(hspace=0)
             fig.set_rasterized(True)
-            fig.suptitle('Env %d place cell activity plotted against Env %d' %(env+1,plot_env+1))            
-            
-#            if(env+1 == 1 or env+1 == 2):
-#                fig.suptitle('Env %d(earlier trials) plotted against env %d' %(env+1,plot_env+1))
-#            elif(env+1 == 3 or env+1 == 4):
-#                fig.suptitle('Env %d(later trials) plotted against env %d' %(env+1,plot_env+1))
 
-            ax  = plt.subplot2grid((4,4), (0,0), rowspan=4,colspan=4)
+            if(split_laps_in_environment == 5050):            
+                fig.suptitle('%s    env %d %s plotted against env %d %s' %(name_of_this_file, env+1,earlierORlater[env],plot_env+1,earlierORlater[plot_env]))
+            elif(split_laps_in_environment == 1122):            
+                fig.suptitle('%s    env %d %s plotted against env %d %s' %(name_of_this_file, env+1,oddOReven[env],plot_env+1,oddOReven[plot_env]))
+            else:
+                fig.suptitle('%s    env %d place cell activity plotted against env %d' %(name_of_this_file, env+1,plot_env+1))  
+
+
+            ax  = plt.subplot2grid((1,1), (0,0), rowspan=4,colspan=4)
             
             #to label the odor sequence on the plots
             od = odor_sequence[env*3:(env+1)*3]            
@@ -511,20 +679,27 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.figtext(0.46,0.91, "%s"%od[1], fontsize='large', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.60,0.91, "%s"%od[2], fontsize='large', color=plot_color[plot_env], ha ='left')            
 
-            plt.figtext(0.84,0.9, "Current environment:",                                  fontsize='xx-small', color=plot_color[plot_env], ha ='left') 
-            plt.figtext(0.84,0.85, "%d - %s%s%s"%(env+1,od[0],od[1],od[2]),                fontsize='18', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.8, "Sort reference env:",                                   fontsize='xx-small', color=plot_color[plot_env], ha ='left') 
-            plt.figtext(0.84,0.75, "%d - %s%s%s"%(plot_env+1,sort_od[0],sort_od[1],sort_od[2]), fontsize='large', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.88,"Env sequence:",                                         fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.85,"%s" %sequence_of_environments,                          fontsize='x-small', color=plot_color[plot_env], ha ='left')
 
-            plt.figtext(0.84,0.7,"Environments: %d" %number_of_environments,               fontsize='x-small', color=plot_color[plot_env], ha ='left')           
-            plt.figtext(0.84,0.65,"Bin size: %dmm" %distance_bin_size,                     fontsize='x-small', color=plot_color[plot_env], ha ='left')            
-            plt.figtext(0.84,0.6,"Track: %1.1fm" %(env_track_lengths[env]/1000.0),         fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.55,"Laps: %d" %laps_in_environment[env],                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.5,"Cells: %d" %total_number_of_cells,                       fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.45,"min speed: %dmm/s" %speed_threshold,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.4,"Sigma: %1.1f" %gaussian_filter_sigma,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.35,"min.activity: %1.3f" %lower_threshold_for_activity,     fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.3,"Cells in env: %d" %data_array.shape[0],                  fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.75, "Current environment:",                                 fontsize='xx-small', color=plot_color[plot_env], ha ='left') 
+            plt.figtext(0.84,0.7, "%d - %s%s%s"%(env+1,od[0],od[1],od[2]),                 fontsize='large', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.65, "Sort reference env:",                                  fontsize='xx-small', color=plot_color[plot_env], ha ='left') 
+            plt.figtext(0.84,0.6, "%d - %s%s%s"%(plot_env+1,sort_od[0],sort_od[1],sort_od[2]), fontsize='large', color=plot_color[plot_env], ha ='left')
+
+            plt.figtext(0.84,0.5,"Environments: %d" %number_of_environments,               fontsize='x-small', color=plot_color[plot_env], ha ='left')           
+            plt.figtext(0.84,0.45,"Bin size: %dmm" %distance_bin_size,                     fontsize='x-small', color=plot_color[plot_env], ha ='left')            
+            plt.figtext(0.84,0.4,"Track: %1.1fm" %(env_track_lengths[env]/1000.0),         fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.35,"Laps: %d" %laps_in_environment[env],                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.3,"Cells: %d" %total_number_of_cells,                       fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.25,"min speed: %dmm/s" %speed_threshold,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.2,"Sigma: %1.1f" %gaussian_filter_sigma,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.15,"min.activity: %1.3f" %lower_threshold_for_activity,     fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.1,"Cells in env: %d" %data_array.shape[0],                  fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            
+      
+
+
 
             plt.figtext(0.03,0.15,"%d" %data_array.shape[0],                               fontsize='large', color = plot_color[plot_env], ha ='left')
             plt.figtext(0.02,0.10,"cells",                                                 fontsize='large', color = plot_color[plot_env], ha ='left')
@@ -586,27 +761,36 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.close()
 
 
+###############################################################################
+####### generate plots for normalized average speed in each environment #######
+###############################################################################
+
     for env in range (0,number_of_environments):
         fig = plt.figure()
         fig.subplots_adjust(hspace=0)
         fig.set_rasterized(True)
-        fig.suptitle('Env %d average speed (normalized to max average speed)' %(env+1)) 
+        
+        
+        if(split_laps_in_environment == 5050):            
+            fig.suptitle('%s    env %d %s average speed (normalized to max average speed)' %(name_of_this_file, env+1,earlierORlater[env]))
+        elif(split_laps_in_environment == 1122):            
+            fig.suptitle('%s    env %d %s average speed (normalized to max average speed)' %(name_of_this_file, env+1,oddOReven[env]))
+        else:
+            fig.suptitle('%s    env %d average speed (normalized to max average speed)' %(name_of_this_file, env+1))
 
-        this_env_average_speed_per_bin = average_speed_per_bin[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]]
-        #np.savetxt(file_path.replace('.csv','_histogram_heights.csv'), histogram_heights, fmt='%i', delimiter=',', newline='\n')  
+
+        this_env_average_speed_per_bin = average_speed_per_bin[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]] 
         
-        max_average_speed = max(average_speed_per_bin)
-        #max_time_per_bin = max(total_time_per_bin)
+        max_average_speed = max(this_env_average_speed_per_bin)
         normalized_average_speed = [(x / max_average_speed) for x in this_env_average_speed_per_bin]
-        #print histogram_heights
-        #print normalized_total_time_per_bin
+
         
-        ax1 = plt.subplot2grid((4,4), (0,0), rowspan=4,colspan=4)
-        #plt.bar(range(bins_in_environment[env]),histogram_heights, width=1, color='g',linewidth=0)
+        ax1 = plt.subplot2grid((1,1), (0,0), rowspan=1,colspan=1)
         plt.plot(range(bins_in_environment[env]),normalized_average_speed,'r-', linewidth = 0.1)
         #ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
         ax1.set_ylabel('Normalized Average Speed',fontsize='large')
-        #ax1.set_ylim(0,1)
+        ax1.set_ylim(0,1)
+        plt.tick_params(axis='y', which='both', labelleft='on', labelright='on')
         plt.setp(ax1.get_yticklabels(),visible=True)
 
         ax1.xaxis.tick_bottom()
@@ -641,28 +825,37 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
         figs.append(fig)               
         plt.close()
 
+###############################################################################
+#### done generating plots for normalized average speed in each environment ###
+###############################################################################
     
     if len(figs) > 0:
-        pdf_name = file_path.replace("behavior_and_events.csv","place_cells_based_on_gaussian_filtered_events_per_second.pdf")
-#        pdf_name = file_path.replace(".csv","_time_normalized_place_cells.pdf")
-        pp = PdfPages(pdf_name)
-#        for fig in env_aligned_to_itself_figs:
-#            pp.savefig(fig,dpi=300,edgecolor='r')
 
+        pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second.pdf")        
+        if(split_laps_in_environment == 5050):            
+            pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_earlier_vs_later.pdf")  
+        elif(split_laps_in_environment == 1122):            
+            pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_odd_vs_even.pdf")
+ 
+        pp = PdfPages(pdf_name)
         for fig in figs:
                 pp.savefig(fig,dpi=300,edgecolor='r')
         pp.close()
 
-        #figs_to_be_saved = [1,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0]     
-        #figs_to_be_saved = [1,0,1,0,0,1,0,1,1,0,1,0,0,1,0,1] #more figure comparisons
-    
-        #figs_to_be_saved = [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]  #when there is just one starting environment
-        #figs_to_be_saved = [1,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0]  #when there is just one starting environment, more comparisons
+        #for plots of odd vs. even trials or earlier vs. later trials
+#        figs_to_be_saved = [1,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0,1,1,1,1]
+#        figs_to_be_saved = [1,0,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,1,1,1] #more figure comparisons
+#    
+#        figs_to_be_saved = [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1]  #when there is just one starting environment
+#        figs_to_be_saved = [1,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,1,1,1,1]  #when there is just one starting environment, more comparisons
 
 #        for fig in range(0,len(figs)):
 #            if(figs_to_be_saved[fig] == 1):            
 #                pp.savefig(figs[fig],dpi=300,edgecolor='r')
 #        pp.close()
+
+
+
 
 
 #to make sure that the files are processed in the proper order (not really important here, but just in case)
@@ -678,8 +871,10 @@ def main():
     speed_threshold = 50 #minimum speed in mm/s for selecting events
     gaussian_filter_sigma = 2.00
     lower_threshold_for_activity = 0.20
-    #env_track_lengths = [4000,4000,4000,4000]
-    #odor_response_distance_window = 500 #in mm
+    
+    # here use the value=1 for no split, value=5050 to split the laps into earlier and later half, value=1122 to split into odd and even trials
+    split_laps_in_environment = 1
+
     
     file_names = [os.path.join(directory_path, f)
         for dirpath, dirnames, files in os.walk(directory_path)
@@ -691,6 +886,6 @@ def main():
 #        if os.path.isfile(mouse_data.replace(".csv","_sorted_place_cells.pdf")):
 #            print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
 #        else:
-        read_data_and_generate_plots(mouse_data,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity)
+        read_data_and_generate_plots(mouse_data,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment)
 
 main()

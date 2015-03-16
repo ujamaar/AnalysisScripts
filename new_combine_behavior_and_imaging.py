@@ -253,7 +253,7 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     print events_adjusted_for_missing_frames.shape
     #now save the array as a csv file in the same location as the input file
     #numpy.savetxt(raw_behavior_file.replace('.csv','_and_events.csv'), events_adjusted_for_missing_frames, fmt='%1.3f', delimiter=',', newline='\n')
-    numpy.savetxt(raw_behavior_file.replace('.csv','_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
+    numpy.savetxt(raw_behavior_file.replace('.csv','_behavior_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
 ###############################################################################
 ###############################################################################
 ###############################################################################

@@ -10,7 +10,7 @@ import re
 from scipy import ndimage
 #import math
 
-def read_data_and_generate_plots(file_path,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,time_bin_size,number_of_time_bins):
+def read_data_and_generate_plots(file_path, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,time_bin_size,number_of_time_bins):
     
     event_data = np.loadtxt(file_path, dtype='int', delimiter=',')
     #event_data = event_data[0:22,0:5]
@@ -242,9 +242,11 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         env_track_lengths[env] = (max_distance_point_in_env / 2000) * 2000 #this will round down the distance value to the nearest multiple of 2000mm (hopefully giving us 2m, 4m or 8m values)
 
         expansion_factor = env_track_lengths[env] / 4000  #just in case the virtual track has been expanded
-        bins_in_environment[env] = number_of_time_bins
-        #bins_in_environment[env] = 80 + ((expansion_factor * average_time_for_lap_completion)/15)*80
-        #bins_in_environment[env] = (env_track_lengths[env] * 5) / time_bin_size
+        if(number_of_time_bins > 0):           
+            bins_in_environment[env] = number_of_time_bins #if you want to manually specify the number of bins for the environments
+        else:
+            bins_in_environment[env] = (env_track_lengths[env] * 5) / time_bin_size #this is for automatically specifying the number of bins per environment based on track length
+            #bins_in_environment[env] = 80 + ((expansion_factor * average_time_for_lap_completion)/15)*80   #this will automatically specify the number of bins per environment based on average time for lap completion
         env_starts_at_this_bin[env+1] = env_starts_at_this_bin[env] + bins_in_environment[env]
      
         odor_start_and_end_points[env*6 + 0] = 1000*expansion_factor #this is where the odor starts
@@ -584,10 +586,10 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
             plt.figtext(0.765,0.6,'summed events (normalized to max bin)',fontsize='x-small',rotation=90)
             
             ax.xaxis.tick_bottom()
-            if(number_of_time_bins == 100):
+            if(number_of_time_bins == 100 or (env_track_lengths[env] == 4000 and number_of_time_bins == 0)):
                 ax.set_xlabel('Time(s)')
                 plt.setp(ax,xticklabels=['0s','4s','8s','12s','16s','20s'],visible=True)
-            elif(number_of_time_bins == 200):
+            elif(number_of_time_bins == 200 or (env_track_lengths[env] == 8000 and number_of_time_bins == 0)):
                 ax.set_xlabel('Time(s)')
                 plt.setp(ax,xticklabels=['0s','10s','20s','30s','40s'],visible=True)
             else:
@@ -638,13 +640,12 @@ def natural_key(string_):
 def main():
     #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
     directory_path ='/Users/njoshi/Desktop/events_test'
-    odor_response_time_window = 2000 #time in ms
     distance_bin_size = 50 #distance bin in mm
     speed_threshold = 50 #minimum speed in mm/s for selecting events
     gaussian_filter_sigma = 2.00
-    lower_threshold_for_activity = 0.10
+    lower_threshold_for_activity = 0.20
     time_bin_size = 200 #time bin in ms
-    number_of_time_bins = 200 #time bin in ms
+    number_of_time_bins = 0 #number of time bins for each environment, use value=0 if you want the script to automatically determine the number of bins
 
     
     file_names = [os.path.join(directory_path, f)
@@ -657,6 +658,6 @@ def main():
 #        if os.path.isfile(mouse_data.replace(".csv","_sorted_place_cells.pdf")):
 #            print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
 #        else:
-        read_data_and_generate_plots(mouse_data,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,time_bin_size,number_of_time_bins)
+        read_data_and_generate_plots(mouse_data, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,time_bin_size,number_of_time_bins)
 
 main()
