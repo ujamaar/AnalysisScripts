@@ -312,7 +312,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         print 'Number of laps in each enviornment after separating earlier and later trials:'
         print laps_in_environment
 
-    elif(split_laps_in_environment == 1122):
+    elif(split_laps_in_environment == 1212):
         environment = split_laps_into_odd_and_even(environment,total_number_of_frames, lap_count)        
         
         #after separating the odd and even trials of each environment, we have doubled the total number of environment in this context
@@ -492,24 +492,20 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
             have_not_reached_reward_region_in_this_lap = 1
                             
 
-
     #np.savetxt(file_path.replace('.csv','_total_events_per_bin.csv'), total_events_per_bin_per_cell, fmt='%i', delimiter=',', newline='\n')                     
     #print total_time_per_bin
     print 'Total running time: %1.1f seconds'%np.sum(total_time_per_bin)
 
-    print average_speed_per_bin
-
-    print 'Normalized average speeds:'
-
+    #print average_speed_per_bin
+    #print 'Normalized average speeds:'
     for current_bin in range(0,total_number_distance_bins_in_all_env):
         environment_in_this_bin = 0
         for env in range(0,number_of_environments-1):
             if(current_bin >= env_starts_at_this_bin[env] and current_bin < env_starts_at_this_bin[env+1]):
                 environment_in_this_bin = env  
         average_speed_in_current_bin = average_speed_per_bin[current_bin] / laps_in_environment[environment_in_this_bin]
-        average_speed_per_bin[current_bin] = average_speed_in_current_bin
-    
-    print average_speed_per_bin
+        average_speed_per_bin[current_bin] = average_speed_in_current_bin    
+    #print average_speed_per_bin
 
     ###############################################################################
     ########################calculate events per lap ##############################
@@ -615,8 +611,21 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
 def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin,split_laps_in_environment):
 
-    #to stamp each figure heading with the mouse ID and data of recording
-    name_of_this_file = file_path[-42:-24]
+    #to stamp each figure heading with the mouse ID and date of recording
+
+    # for file names of the format wfnjC19_2015-02-14_behavior_and_events.csv , this straightforward method of extracting the mouse ID and date will work
+    #name_of_this_file = file_path[-42:-24] #
+
+    #however, if the filename is in a different format, we will look for the first instance of the letter 'w' from the end of the filename
+    filename_starts_at_this_letter = 0
+    for name_letter in range (1,len(file_path)):
+        if(file_path[len(file_path) - name_letter] == 'w' or file_path[len(file_path) - name_letter] == 'W'):
+            filename_starts_at_this_letter = len(file_path) - name_letter
+            break
+    name_of_this_file = file_path[filename_starts_at_this_letter:(filename_starts_at_this_letter+18)]
+
+    print 'File name is: %s'%name_of_this_file
+
     sequence_of_environments = ''
     for env in range(0,number_of_environments):
         sequence_of_environments = sequence_of_environments + odor_sequence[3*env] + odor_sequence[3*env+1] + odor_sequence[3*env+2]
@@ -663,7 +672,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
 
             if(split_laps_in_environment == 5050):            
                 fig.suptitle('%s    env %d %s plotted against env %d %s' %(name_of_this_file, env+1,earlierORlater[env],plot_env+1,earlierORlater[plot_env]))
-            elif(split_laps_in_environment == 1122):            
+            elif(split_laps_in_environment == 1212):            
                 fig.suptitle('%s    env %d %s plotted against env %d %s' %(name_of_this_file, env+1,oddOReven[env],plot_env+1,oddOReven[plot_env]))
             else:
                 fig.suptitle('%s    env %d place cell activity plotted against env %d' %(name_of_this_file, env+1,plot_env+1))  
@@ -691,7 +700,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.figtext(0.84,0.45,"Bin size: %dmm" %distance_bin_size,                     fontsize='x-small', color=plot_color[plot_env], ha ='left')            
             plt.figtext(0.84,0.4,"Track: %1.1fm" %(env_track_lengths[env]/1000.0),         fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.35,"Laps: %d" %laps_in_environment[env],                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.3,"Cells: %d" %total_number_of_cells,                       fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.3,"Total cells: %d" %total_number_of_cells,                 fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.25,"min speed: %dmm/s" %speed_threshold,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.2,"Sigma: %1.1f" %gaussian_filter_sigma,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.15,"min.activity: %1.3f" %lower_threshold_for_activity,     fontsize='x-small', color=plot_color[plot_env], ha ='left')
@@ -772,11 +781,11 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
         
         
         if(split_laps_in_environment == 5050):            
-            fig.suptitle('%s    env %d %s average speed (normalized to max average speed)' %(name_of_this_file, env+1,earlierORlater[env]))
-        elif(split_laps_in_environment == 1122):            
-            fig.suptitle('%s    env %d %s average speed (normalized to max average speed)' %(name_of_this_file, env+1,oddOReven[env]))
+            fig.suptitle('%s    env %d %s average speed (normalized to max)' %(name_of_this_file, env+1,earlierORlater[env]))
+        elif(split_laps_in_environment == 1212):            
+            fig.suptitle('%s    env %d %s average speed (normalized to max)' %(name_of_this_file, env+1,oddOReven[env]))
         else:
-            fig.suptitle('%s    env %d average speed (normalized to max average speed)' %(name_of_this_file, env+1))
+            fig.suptitle('%s    env %d average speed (normalized to max)' %(name_of_this_file, env+1))
 
 
         this_env_average_speed_per_bin = average_speed_per_bin[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]] 
@@ -831,11 +840,11 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
     
     if len(figs) > 0:
 
-        pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second.pdf")        
+        pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_%1.2f.pdf"%lower_threshold_for_activity)        
         if(split_laps_in_environment == 5050):            
-            pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_earlier_vs_later.pdf")  
-        elif(split_laps_in_environment == 1122):            
-            pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_odd_vs_even.pdf")
+            pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_earlier_vs_later_%1.2f.pdf"%lower_threshold_for_activity)  
+        elif(split_laps_in_environment == 1212):            
+            pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_odd_vs_even_%1.2f.pdf"%lower_threshold_for_activity)
  
         pp = PdfPages(pdf_name)
         for fig in figs:
@@ -872,7 +881,10 @@ def main():
     gaussian_filter_sigma = 2.00
     lower_threshold_for_activity = 0.20
     
-    # here use the value=1 for no split, value=5050 to split the laps into earlier and later half, value=1122 to split into odd and even trials
+    # here use these values:
+    #split_laps_in_environment=1  #for no split
+    #split_laps_in_environment=5050 #to split the laps into earlier and later half 
+    #split_laps_in_environment=1212 #to split into odd and even trials
     split_laps_in_environment = 1
 
     

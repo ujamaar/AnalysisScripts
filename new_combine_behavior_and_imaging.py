@@ -7,10 +7,14 @@ import re
 #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
 directory_path ='/Users/njoshi/Desktop/events_test'
 
-def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file, missing_frame_file):
+def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file, missing_frame_file,frame_ID_adjustment_factor):
     #fast_output_array = numpy.loadtxt(complete_file, dtype='int', comments='#', delimiter=',', converters=None, skiprows=2, usecols=(0,1,3,5,6,12,15), unpack=False, ndmin=0) 
     
     raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',',skiprows=2)
+
+    #############################################################################################    
+    ############################## code for calculating speed ###################################
+    #############################################################################################
     
 #    #calculate speed per 50mm stretch of the track########################################
 #    s1 = 0.00
@@ -119,25 +123,19 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     max_speed = max(speed)
     print 'Minimum speed was: %f' %min_speed 
     print 'Maximum speed was: %f' %max_speed 
-    
-    zero_speed_times = []
 
-    for speed_row in range(0,len(speed)):
-        if(speed[speed_row] == min_speed or speed[speed_row] == max_speed):     
-            if(len(zero_speed_times) == 0):
-                zero_speed_times = [raw_behavior[speed_row][1],speed[speed_row]]
-            else:
-                zero_speed_times = numpy.vstack([zero_speed_times,[raw_behavior[speed_row][1],speed[speed_row]]]) 
+    ####################done calculating speed per 50mm stretch of the track#####################
 
-    numpy.savetxt(raw_behavior_file.replace('.csv','_time_points_for_min_max_speeds.csv'), zero_speed_times, fmt='%.2f', delimiter=',', newline='\n')
-
-    #numpy.savetxt(raw_behavior_file.replace('.csv','_speeeeeeeeeeeeeeeed.csv'), speed, fmt='%f', delimiter=',', newline='\n')
-
-    #done calculating speed per 50mm stretch of the track########################################
+    #############################################################################################    
+    ######################### end of code for calculating speed #################################
     #############################################################################################
 
 
 
+
+    #############################################################################################    
+    ##################### now combine and save the data in a csv file ###########################
+    #############################################################################################
 
     #use and save only the relevant columns from the raw behavior file
     behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][0],9),dtype='int')
@@ -154,7 +152,7 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
 #            behavior[frame_count][4] = raw_behavior[row][5]    #initial drop count
 #            behavior[frame_count][4] = raw_behavior[row][6]    #reward window status
             behavior[frame_count][5] = raw_behavior[row][7]    #distance
-            behavior[frame_count][6] = raw_behavior[row][9]    #lap count
+            behavior[frame_count][6] = raw_behavior[row][9]    #
             behavior[frame_count][7] = raw_behavior[row][10]   #lap count
             behavior[frame_count][8] = speed[row]              #speed
             frame_count = raw_behavior[row][0] 
@@ -200,17 +198,16 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     for cell in range(0,len(events)):
         if(valid_cells[cell] == 1):
             valid_cell_events.append(events[cell])
-    print 'Size of valid cell events file is: %d'%len(valid_cell_events)    
-    print valid_cell_events[0:3]    
+    #print 'Size of valid cell events file is: %d'%len(valid_cell_events)    
+    #print valid_cell_events[0:3]    
     #print valid_cell_events[len(valid_cell_events)-6:len(valid_cell_events)]
-    
-    #    
+      
     events_by_frame = numpy.empty((number_of_frames,number_of_valid_cells),dtype='int')   
     max_frame_with_event = 0
     for this_cell in range(0,number_of_valid_cells):
         frames_in_this_cell = len(valid_cell_events[this_cell])
         for this_frame in range(0,frames_in_this_cell):
-            event_frame_index = (valid_cell_events[this_cell][this_frame] -1)*2 #multiply by 2 b/c imaging data has been down sampled (10 frames/sec to 5)
+            event_frame_index = (valid_cell_events[this_cell][this_frame] -1)*frame_ID_adjustment_factor #multiply by the adjustment factor because imaging data has been down sampled (e.g. 10 frames/sec down sampled to 5)
             events_by_frame[event_frame_index][this_cell] = 1
             if(event_frame_index > max_frame_with_event):
                 max_frame_with_event = event_frame_index
@@ -253,7 +250,10 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     print events_adjusted_for_missing_frames.shape
     #now save the array as a csv file in the same location as the input file
     #numpy.savetxt(raw_behavior_file.replace('.csv','_and_events.csv'), events_adjusted_for_missing_frames, fmt='%1.3f', delimiter=',', newline='\n')
-    numpy.savetxt(raw_behavior_file.replace('.csv','_behavior_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
+    save_file_name = raw_behavior_file[0:-16] + '_behavior_and_events.csv'
+    print save_file_name
+    numpy.savetxt(save_file_name, events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')    
+    #numpy.savetxt(raw_behavior_file.replace('.csv','_behavior_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
 ###############################################################################
 ###############################################################################
 ###############################################################################
@@ -276,6 +276,12 @@ def main():
         for dirpath, dirnames, files in os.walk(directory_path)
         for f in files if f.endswith('.csv')]
     file_names.sort(key=natural_key)
+    
+    imaging_frame_rate = 10 #frequency(frames/sec) at which images were captured by the inscopix scope as the behavior was recording the TTL pulses
+    frame_rate_after_down_sampling = 5 #frequency(frames/sec) to which the captured video was down sampled for event analysis
+    
+    frame_ID_adjustment_factor = imaging_frame_rate / frame_rate_after_down_sampling
+    print 'Frame adjustment factor for this recording is: %d'%frame_ID_adjustment_factor
 
     #now on to the actual analysis:
     if (len(file_names) == 3):
@@ -283,7 +289,7 @@ def main():
         print 'Events file: '+ file_names[0]
         print 'Valid cells: '+ file_names[1]
         print 'Behavior file: '+ file_names[2]
-        extract_details_per_frame(file_names[0],file_names[1],file_names[2],0)
+        extract_details_per_frame(file_names[0],file_names[1],file_names[2],0,frame_ID_adjustment_factor)
     # if there are missing frames, run this statement
     elif (len(file_names) == 4):
         print 'Some imaging frames are missing in this recording.'
@@ -291,7 +297,7 @@ def main():
         print 'Valid cells: '+ file_names[1]
         print 'Behavior file: '+ file_names[2]
         print 'Missing frame file: '+ file_names[3]
-        extract_details_per_frame(file_names[0],file_names[1],file_names[2],file_names[3])
+        extract_details_per_frame(file_names[0],file_names[1],file_names[2],file_names[3],frame_ID_adjustment_factor)
     else:
         print "Please make sure that there are an appropriate number of files in the folder"
 
