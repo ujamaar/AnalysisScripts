@@ -1,20 +1,31 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jul 30 18:52:38 2014
+import numpy # needed for various math tasks
+import matplotlib.pyplot as plt # needed for plotting graphs
+from matplotlib.backends.backend_pdf import PdfPages # for saving figures as pdf
+import os # needed to arrange filenames alphabetically
+import re # needed to arrange filenames alphabetically
+import time # pretty obvious, eh
 
-@author: njoshi
-"""
-#something for inspiration: http://matplotlib.org/examples/pylab_examples/multiple_yaxis_with_spines.html
-import numpy
-import os
-import time
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-import re
+def main():
+    directory_path ='/Users/njoshi/Desktop/events_test'
+    #directory_path ='C:/cygwin/home/axel/RotaryDisc_CABA/Recordings/nwp68/nwp68_2014_11_05'
+    #\\losonczy-server\walter\Virtual_Odor\behavior_data\wfnjC3\wfnjC3_2014_10_06
 
-directory_path ='/Users/njoshi/Desktop/events_test'
-#directory_path ='C:/cygwin/home/axel/RotaryDisc_CABA/Recordings/nwp68/nwp68_2014_11_05'
-#\\losonczy-server\walter\Virtual_Odor\behavior_data\wfnjC3\wfnjC3_2014_10_06
+    file_names = [os.path.join(directory_path, f)
+        for dirpath, dirnames, files in os.walk(directory_path)
+        for f in files if f.endswith('.csv')]
+    file_names.sort(key=natural_key)
+    
+    #now generate a pdf file with all the plots (one plot for each file)
+    for filez in file_names:
+            print "File to be processed: " + filez
+            track_length = 4000
+            generate_graph(filez,track_length)
+
+#to make sure that the files are processed in the proper order (not really important here, but just in case)
+def natural_key(string_):
+    """See http://www.codinghorror.com/blog/archives/001018.html"""
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
+
 
 def generate_graph(filename,track_length):
     
@@ -291,21 +302,6 @@ def generate_graph(filename,track_length):
         pp.savefig(fig)#, dpi=1000, 
     pp.close()
 
-#to make sure that the files are processed in the proper order
-def natural_key(string_):
-    """See http://www.codinghorror.com/blog/archives/001018.html"""
-    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
-
-def main():
-    file_names = [os.path.join(directory_path, f)
-        for dirpath, dirnames, files in os.walk(directory_path)
-        for f in files if f.endswith('.csv')]
-    file_names.sort(key=natural_key)
-    
-    #now generate a pdf file with all the plots (one plot for each file)
-    for filez in file_names:
-            print "File to be processed: " + filez
-            track_length = 4000
-            generate_graph(filez,track_length)
+###################################################################
 
 main()

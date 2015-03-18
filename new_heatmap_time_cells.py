@@ -1,14 +1,41 @@
-#http://stackoverflow.com/questions/27578648/customizing-colors-in-matplotlib-heatmap
+import matplotlib.pyplot as plt # needed for plotting graphs
+import numpy as np # needed for various math tasks
+from matplotlib.ticker import MaxNLocator #y-axis labels
+from matplotlib.backends.backend_pdf import PdfPages # for saving figures as pdf
+import os # needed to arrange filenames alphabetically
+import re # needed to arrange filenames alphabetically
+from scipy import ndimage # needed to apply gaussian filter
 
-import matplotlib.pyplot as plt
-#from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-import numpy as np
-from matplotlib.ticker import MaxNLocator
-from matplotlib.backends.backend_pdf import PdfPages
-import os
-import re
-from scipy import ndimage
-#import math
+
+def main():
+    #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
+    directory_path ='/Users/njoshi/Desktop/events_test'
+    distance_bin_size = 50 #distance bin in mm
+    speed_threshold = 50 #minimum speed in mm/s for selecting events
+    gaussian_filter_sigma = 2.00
+    lower_threshold_for_activity = 0.20
+    time_bin_size = 200 #time bin in ms
+    number_of_time_bins = 0 #number of time bins for each environment, use value=0 if you want the script to automatically determine the number of bins
+
+    
+    file_names = [os.path.join(directory_path, f)
+        for dirpath, dirnames, files in os.walk(directory_path)
+        for f in files if f.endswith('.csv')]
+    file_names.sort(key=natural_key)
+    
+    for mouse_data in file_names:
+        print 'Analyzing this file: '+ mouse_data
+#        if os.path.isfile(mouse_data.replace(".csv","_sorted_place_cells.pdf")):
+#            print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
+#        else:
+        read_data_and_generate_plots(mouse_data, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,time_bin_size,number_of_time_bins)
+
+
+#to make sure that the files are processed in the proper order (not really important here, but just in case)
+def natural_key(string_):
+    """See http://www.codinghorror.com/blog/archives/001018.html"""
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
+
 
 def read_data_and_generate_plots(file_path, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,time_bin_size,number_of_time_bins):
     
@@ -631,33 +658,6 @@ def generate_plots(file_path, place_field_events_each_cell,number_of_environment
 #                pp.savefig(figs[fig],dpi=300,edgecolor='r')
 #        pp.close()
 
-
-#to make sure that the files are processed in the proper order (not really important here, but just in case)
-def natural_key(string_):
-    """See http://www.codinghorror.com/blog/archives/001018.html"""
-    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
-
-def main():
-    #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
-    directory_path ='/Users/njoshi/Desktop/events_test'
-    distance_bin_size = 50 #distance bin in mm
-    speed_threshold = 50 #minimum speed in mm/s for selecting events
-    gaussian_filter_sigma = 2.00
-    lower_threshold_for_activity = 0.20
-    time_bin_size = 200 #time bin in ms
-    number_of_time_bins = 0 #number of time bins for each environment, use value=0 if you want the script to automatically determine the number of bins
-
-    
-    file_names = [os.path.join(directory_path, f)
-        for dirpath, dirnames, files in os.walk(directory_path)
-        for f in files if f.endswith('.csv')]
-    file_names.sort(key=natural_key)
-    
-    for mouse_data in file_names:
-        print 'Analyzing this file: '+ mouse_data
-#        if os.path.isfile(mouse_data.replace(".csv","_sorted_place_cells.pdf")):
-#            print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
-#        else:
-        read_data_and_generate_plots(mouse_data, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,time_bin_size,number_of_time_bins)
+###############################################################################
 
 main()

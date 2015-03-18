@@ -1,11 +1,55 @@
-import os
-import numpy
-import re
+import numpy # needed for various math tasks
+import os # needed to arrange filenames alphabetically
+import re # needed to arrange filenames alphabetically
 
 #this script is for selecting valid cells from events file and then combining the behavior data with event data
 
-#for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
-directory_path ='/Users/njoshi/Desktop/events_test'
+#we need the files to be in the following order for the analysis to run properly:
+#1 behavior
+#2 events
+#3 valid_cells
+#4 missing frames
+
+def main():
+    #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
+    directory_path ='/Users/njoshi/Desktop/events_test'
+
+    #detect all the .csv files in the folder
+    file_names = [os.path.join(directory_path, f)
+        for dirpath, dirnames, files in os.walk(directory_path)
+        for f in files if f.endswith('.csv')]
+    file_names.sort(key=natural_key)
+    
+    imaging_frame_rate = 10 #frequency(frames/sec) at which images were captured by the inscopix scope as the behavior was recording the TTL pulses
+    frame_rate_after_down_sampling = 5 #frequency(frames/sec) to which the captured video was down sampled for event analysis
+    
+    frame_ID_adjustment_factor = imaging_frame_rate / frame_rate_after_down_sampling
+    print 'Frame adjustment factor for this recording is: %d'%frame_ID_adjustment_factor
+
+    #now on to the actual analysis:
+    if (len(file_names) == 3):
+        print 'Looks like no imaging frames were dropped in this recording. Great!'
+        print 'Events file: '+ file_names[0]
+        print 'Valid cells: '+ file_names[1]
+        print 'Behavior file: '+ file_names[2]
+        extract_details_per_frame(file_names[0],file_names[1],file_names[2],0,frame_ID_adjustment_factor)
+    # if there are missing frames, run this statement
+    elif (len(file_names) == 4):
+        print 'Some imaging frames are missing in this recording.'
+        print 'Events file: '+ file_names[0]
+        print 'Valid cells: '+ file_names[1]
+        print 'Behavior file: '+ file_names[2]
+        print 'Missing frame file: '+ file_names[3]
+        extract_details_per_frame(file_names[0],file_names[1],file_names[2],file_names[3],frame_ID_adjustment_factor)
+    else:
+        print "Please make sure that there are an appropriate number of files in the folder"
+
+
+#to make sure that the files are processed in the proper order
+def natural_key(string_):
+    """See http://www.codinghorror.com/blog/archives/001018.html"""
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
+
 
 def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file, missing_frame_file,frame_ID_adjustment_factor):
     #fast_output_array = numpy.loadtxt(complete_file, dtype='int', comments='#', delimiter=',', converters=None, skiprows=2, usecols=(0,1,3,5,6,12,15), unpack=False, ndmin=0) 
@@ -255,51 +299,6 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     numpy.savetxt(save_file_name, events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')    
     #numpy.savetxt(raw_behavior_file.replace('.csv','_behavior_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
 ###############################################################################
-###############################################################################
-###############################################################################
-
-#we need the files to be in the following order for the analysis to run properly:
-#1 behavior
-#2 events
-#3 valid_cells
-#4 missing frames
-
-#to make sure that the files are processed in the proper order (not really important here, but just in case)
-def natural_key(string_):
-    """See http://www.codinghorror.com/blog/archives/001018.html"""
-    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
-
-
-def main():
-    #detect all the .csv files in the folder
-    file_names = [os.path.join(directory_path, f)
-        for dirpath, dirnames, files in os.walk(directory_path)
-        for f in files if f.endswith('.csv')]
-    file_names.sort(key=natural_key)
-    
-    imaging_frame_rate = 10 #frequency(frames/sec) at which images were captured by the inscopix scope as the behavior was recording the TTL pulses
-    frame_rate_after_down_sampling = 5 #frequency(frames/sec) to which the captured video was down sampled for event analysis
-    
-    frame_ID_adjustment_factor = imaging_frame_rate / frame_rate_after_down_sampling
-    print 'Frame adjustment factor for this recording is: %d'%frame_ID_adjustment_factor
-
-    #now on to the actual analysis:
-    if (len(file_names) == 3):
-        print 'Looks like no imaging frames were dropped in this recording. Great!'
-        print 'Events file: '+ file_names[0]
-        print 'Valid cells: '+ file_names[1]
-        print 'Behavior file: '+ file_names[2]
-        extract_details_per_frame(file_names[0],file_names[1],file_names[2],0,frame_ID_adjustment_factor)
-    # if there are missing frames, run this statement
-    elif (len(file_names) == 4):
-        print 'Some imaging frames are missing in this recording.'
-        print 'Events file: '+ file_names[0]
-        print 'Valid cells: '+ file_names[1]
-        print 'Behavior file: '+ file_names[2]
-        print 'Missing frame file: '+ file_names[3]
-        extract_details_per_frame(file_names[0],file_names[1],file_names[2],file_names[3],frame_ID_adjustment_factor)
-    else:
-        print "Please make sure that there are an appropriate number of files in the folder"
 
 main()
 
