@@ -14,7 +14,7 @@ def main():
     distance_bin_size = 50 #distance bin in mm
     speed_threshold = 50 #minimum speed in mm/s for selecting events
     gaussian_filter_sigma = 2.00
-    lower_threshold_for_activity = 0.20
+    lower_threshold_for_activity = 0.10
     
     # here use these values:
     #split_laps_in_environment=1  #for no split
@@ -628,7 +628,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #    np.savetxt(file_path.replace('.csv','_gaussian_filtered_events_per_second_ranked.csv'), place_data_each_cell, fmt='%f', delimiter=',', newline='\n')            
 
     #now send the data for plotting:
-    generate_plots(file_path, place_data_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence_in_letters,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin,split_laps_in_environment)
+#    generate_plots(file_path, place_data_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence_in_letters,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin,split_laps_in_environment)
 
     ###############################################################################
     ########################done generating data for plots ########################
@@ -641,7 +641,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 ###############################################################################
 ###############################################################################
 #based on source: http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
-def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin,split_laps_in_environment):
+#def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,number_of_environments, laps_in_environment, total_number_of_cells, bins_in_environment, env_starts_at_this_bin,env_track_lengths,odor_sequence,distance_bin_size,odor_start_and_end_points,speed_threshold,total_number_distance_bins_in_all_env,gaussian_filter_sigma,lower_threshold_for_activity,average_speed_per_bin,split_laps_in_environment):
 
     #to stamp each figure heading with the mouse ID and date of recording
 
@@ -660,7 +660,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
 
     sequence_of_environments = ''
     for env in range(0,number_of_environments):
-        sequence_of_environments = sequence_of_environments + odor_sequence[3*env] + odor_sequence[3*env+1] + odor_sequence[3*env+2]
+        sequence_of_environments = sequence_of_environments + odor_sequence_in_letters[3*env] + odor_sequence_in_letters[3*env+1] + odor_sequence_in_letters[3*env+2]
         if(env < number_of_environments-1):
             sequence_of_environments = sequence_of_environments + '-'
     print 'This is the sequence of environments: %s' %sequence_of_environments
@@ -679,7 +679,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
 
     
     for plot_env in range (0,number_of_environments):
-        data_array_all = place_field_events_each_cell[np.argsort(place_field_events_each_cell[:,plot_env*2],kind='quicksort')]
+        data_array_all = place_data_each_cell[np.argsort(place_data_each_cell[:,plot_env*2],kind='quicksort')]
         
         data_array = []
         for row in range(0,data_array_all.shape[0]):
@@ -713,8 +713,8 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             ax  = plt.subplot2grid((1,1), (0,0), rowspan=4,colspan=4)
             
             #to label the odor sequence on the plots
-            od = odor_sequence[env*3:(env+1)*3]            
-            sort_od = odor_sequence[plot_env*3:(plot_env+1)*3] 
+            od = odor_sequence_in_letters[env*3:(env+1)*3]            
+            sort_od = odor_sequence_in_letters[plot_env*3:(plot_env+1)*3] 
 
             plt.figtext(0.32,0.91, "%s"%od[0], fontsize='large', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.46,0.91, "%s"%od[1], fontsize='large', color=plot_color[plot_env], ha ='left')
@@ -846,7 +846,7 @@ def generate_plots(file_path, place_field_events_each_cell,total_time_per_bin,nu
             plt.setp(ax1.get_xticklabels(),visible=True)
 
         #to label the odor sequence on the plots
-        od = odor_sequence[env*3:(env+1)*3] 
+        od = odor_sequence_in_letters[env*3:(env+1)*3] 
         plt.figtext(0.35,0.91, "%s"%od[0], fontsize='large', color=plot_color[plot_env], ha ='left')
         plt.figtext(0.55,0.91, "%s"%od[1], fontsize='large', color=plot_color[plot_env], ha ='left')
         plt.figtext(0.75,0.91, "%s"%od[2], fontsize='large', color=plot_color[plot_env], ha ='left') 
