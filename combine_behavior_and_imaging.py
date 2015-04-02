@@ -11,38 +11,75 @@ import re # needed to arrange filenames alphabetically
 #4 missing frames
 
 def main():
-    #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
-    directory_path ='/Users/njoshi/Desktop/events_test'
 
-    #detect all the .csv files in the folder
-    file_names = [os.path.join(directory_path, f)
-        for dirpath, dirnames, files in os.walk(directory_path)
-        for f in files if f.endswith('.csv')]
-    file_names.sort(key=natural_key)
-    
     imaging_frame_rate = 10 #frequency(frames/sec) at which images were captured by the inscopix scope as the behavior was recording the TTL pulses
-    frame_rate_after_down_sampling = 5 #frequency(frames/sec) to which the captured video was down sampled for event analysis
-    
+    frame_rate_after_down_sampling = 5 #frequency(frames/sec) to which the captured video was down sampled for event analysis    
     frame_ID_adjustment_factor = imaging_frame_rate / frame_rate_after_down_sampling
-    print 'Frame adjustment factor for this recording is: %d'%frame_ID_adjustment_factor
+    print 'Frame adjustment factor for downsampled videos is: %d'%frame_ID_adjustment_factor
 
-    #now on to the actual analysis:
-    if (len(file_names) == 3):
-        print 'Looks like no imaging frames were dropped in this recording. Great!'
-        print 'Events file: '+ file_names[0]
-        print 'Valid cells: '+ file_names[1]
-        print 'Behavior file: '+ file_names[2]
-        extract_details_per_frame(file_names[0],file_names[1],file_names[2],0,frame_ID_adjustment_factor)
-    # if there are missing frames, run this statement
-    elif (len(file_names) == 4):
-        print 'Some imaging frames are missing in this recording.'
-        print 'Events file: '+ file_names[0]
-        print 'Valid cells: '+ file_names[1]
-        print 'Behavior file: '+ file_names[2]
-        print 'Missing frame file: '+ file_names[3]
-        extract_details_per_frame(file_names[0],file_names[1],file_names[2],file_names[3],frame_ID_adjustment_factor)
-    else:
-        print "Please make sure that there are an appropriate number of files in the folder"
+    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+
+    #detect all the behavior.csv files in the folder
+    file_names = []
+    for dirpath, dirnames, files in os.walk(data_files_directory_path):
+        for behavior_file in files:
+            if behavior_file.endswith('behavior.csv'):
+                behavior_file_has_already_been_analyzed = False
+                for combined_file in files:
+                    if combined_file.endswith('combined_behavior_and_events.csv'):
+                        behavior_file_has_already_been_analyzed = True
+                        print 'This behavior file has already been combined: ' + behavior_file
+                        print 'I found this combined behavior and events file: ' + combined_file
+                        print 'Delete the combined file to re-run this behavior file.'
+                
+                if(behavior_file_has_already_been_analyzed == False):      
+                    file_names.append(os.path.join(dirpath, behavior_file))
+    # sort the file names to analyze them in a 'natural' alphabetical order
+    file_names.sort(key=natural_key)    
+    print 'Here are all of the behavior files that will be analyzed now:'
+    print file_names
+    
+    # now look for imaging data for each behavior file and combine all the data into one output file    
+    for behavior_file in file_names:
+        print '----------------------------------------------------------------'
+        print '----------------------------------------------------------------'
+        print 'Analysing this behavior file: '+ behavior_file
+        
+        #now load the events, valid_cells and missing_frames files for the given behavior file
+        imaging_files_directory_path = data_files_directory_path + '/' + behavior_file[-43:-25]
+        events_file           = imaging_files_directory_path + '/' + 'events.csv'
+        valid_cells_file      = imaging_files_directory_path + '/' + 'valid_cells.csv' 
+        dropped_frames_file   = imaging_files_directory_path + '/' + 'dropped_frames.csv'
+        output_file_name      = imaging_files_directory_path + '/' + behavior_file[-43:-25]
+
+#        #create an output folder for each input file
+#        output_directory_path = '/Users/njoshi/Desktop/output_files/' + raw_behavior_file[-43:-26] + '_combined_behavior_and_events'
+#        if output_directory_path:
+#            if not os.path.isdir(output_directory_path):
+#                os.makedirs(output_directory_path) 
+
+        # This if statement is to make sure that the relevant files are actually there in the folder
+        if os.path.isfile(events_file):        
+            print 'The matching events file is: '+ events_file
+            if os.path.isfile(valid_cells_file):
+                print 'The matching valid_cells file is: '+ valid_cells_file
+                #if there is a file for dropped frames, print a notification
+                if os.path.isfile (dropped_frames_file):
+                    print 'This recording has dropped frames: '+ dropped_frames_file
+                else: #if there is no file for dropped frames in the imaging folder
+                    print 'There were no dropped frames in this recording.'            
+                    dropped_frames_file = 0       
+                extract_details_per_frame(events_file,valid_cells_file,behavior_file,dropped_frames_file,frame_ID_adjustment_factor,output_file_name)
+        else:
+            print ('This behavior file either does not have imaging data, or the imaging files are not named properly. ' +
+                   'The script expects to find files with names events.csv, valid_cells.csv, and dropped_frames.csv (if there are dropped frames)')
+
+
+
+#############################################################################################
+#<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
+#############################################################################################
 
 
 #to make sure that the files are processed in the proper order
@@ -51,9 +88,9 @@ def natural_key(string_):
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
 
-def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file, missing_frame_file,frame_ID_adjustment_factor):
-    #fast_output_array = numpy.loadtxt(complete_file, dtype='int', comments='#', delimiter=',', converters=None, skiprows=2, usecols=(0,1,3,5,6,12,15), unpack=False, ndmin=0) 
+def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file, dropped_frames_file,frame_ID_adjustment_factor,output_file_name):
     
+    #read the behavior.csv file and load it into a matrix called raw_behavior
     raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',',skiprows=2)
 
     #############################################################################################    
@@ -209,7 +246,7 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     
 ###############################################################################
 
-
+    #read the valid_cells file into an array
     valid_cells = numpy.loadtxt(valid_cells_file, dtype='int', comments='#', delimiter=',')
     print "Number of putative cells: %d"%valid_cells.size
     number_of_valid_cells = numpy.sum(valid_cells) 
@@ -260,22 +297,22 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
 
 
     # run this only if there are missing frames
-    missing_frames = []
-    if (missing_frame_file == 0):
-        missing_frames = [0]
+    dropped_frames = []
+    if (dropped_frames_file == 0):
+        dropped_frames = [0]
         print 'There are no dropped frames in this recording :)'
     else:
-        missing_frames = numpy.loadtxt(missing_frame_file, dtype='int', comments='#', delimiter=',')
-        print "Number of dropped frames: %d"%missing_frames.size
+        dropped_frames = numpy.loadtxt(dropped_frames_file, dtype='int', comments='#', delimiter=',')
+        print "Number of dropped frames: %d"%dropped_frames.size
 ###############################################################################
 
-    print 'Now we will nicely pack and save all this information in one csv file:'
+    #combine all the data into one matrix now
     events_adjusted_for_missing_frames = numpy.empty((number_of_frames,behavior.shape[1] + number_of_valid_cells),dtype='int')
 
     adjust_for_missing_frames = 0
     
     for frame in range(0,number_of_frames):
-        if(frame+1 in missing_frames):
+        if(frame+1 in dropped_frames):
             adjust_for_missing_frames = adjust_for_missing_frames + 1
             for cell in range(0,events_adjusted_for_missing_frames.shape[1]):
                 if (cell < behavior.shape[1]):
@@ -294,8 +331,10 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     print events_adjusted_for_missing_frames.shape
     #now save the array as a csv file in the same location as the input file
     #numpy.savetxt(raw_behavior_file.replace('.csv','_and_events.csv'), events_adjusted_for_missing_frames, fmt='%1.3f', delimiter=',', newline='\n')
-    save_file_name = raw_behavior_file[0:-16] + '_behavior_and_events.csv'
+#    save_file_name = raw_behavior_file[0:-16] + '_behavior_and_events.csv'
+    save_file_name = output_file_name + '_combined_behavior_and_events.csv'
     print save_file_name
+#    numpy.savetxt(output_dir_path + '/cell_events_per_frame.csv', events_by_frame_with_threshold , fmt='%i', delimiter=',', newline='\n')
     numpy.savetxt(save_file_name, events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')    
     #numpy.savetxt(raw_behavior_file.replace('.csv','_behavior_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
 ###############################################################################
