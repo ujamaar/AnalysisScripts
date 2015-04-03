@@ -4,12 +4,6 @@ import re # needed to arrange filenames alphabetically
 
 #this script is for selecting valid cells from events file and then combining the behavior data with event data
 
-#we need the files to be in the following order for the analysis to run properly:
-#1 behavior
-#2 events
-#3 valid_cells
-#4 missing frames
-
 def main():
 
     imaging_frame_rate = 10 #frequency(frames/sec) at which images were captured by the inscopix scope as the behavior was recording the TTL pulses
@@ -17,9 +11,11 @@ def main():
     frame_ID_adjustment_factor = imaging_frame_rate / frame_rate_after_down_sampling
     print 'Frame adjustment factor for downsampled videos is: %d'%frame_ID_adjustment_factor
 
-    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
-    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+    #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+    
     #detect all the behavior.csv files in the folder
     file_names = []
     for dirpath, dirnames, files in os.walk(data_files_directory_path):
@@ -46,12 +42,23 @@ def main():
         print '----------------------------------------------------------------'
         print 'Analysing this behavior file: '+ behavior_file
         
-        #now load the events, valid_cells and missing_frames files for the given behavior file
-        imaging_files_directory_path = data_files_directory_path + '/' + behavior_file[-43:-25]
+        # now load the events, valid_cells and missing_frames files for the given behavior file
+        # first extract the mouse ID and date from behavior file, to find the right imaging files
+        mouse_ID_first_letter = 0
+        file_length = len(behavior_file)
+        for name_letter in range (1,file_length):
+            if(behavior_file[file_length - name_letter] == 'w' or behavior_file[file_length - name_letter] == 'W'):
+                mouse_ID_first_letter = file_length - name_letter
+                break
+        mouse_ID_and_date = behavior_file[mouse_ID_first_letter:(mouse_ID_first_letter+18)]
+        print 'Mouse ID is: %s'%mouse_ID_and_date
+
+
+        imaging_files_directory_path = data_files_directory_path + '/' + mouse_ID_and_date
         events_file           = imaging_files_directory_path + '/' + 'events.csv'
         valid_cells_file      = imaging_files_directory_path + '/' + 'valid_cells.csv' 
         dropped_frames_file   = imaging_files_directory_path + '/' + 'dropped_frames.csv'
-        output_file_name      = imaging_files_directory_path + '/' + behavior_file[-43:-25]
+        output_file_name      = imaging_files_directory_path + '/' + mouse_ID_and_date
 
 #        #create an output folder for each input file
 #        output_directory_path = '/Users/njoshi/Desktop/output_files/' + raw_behavior_file[-43:-26] + '_combined_behavior_and_events'
@@ -75,7 +82,7 @@ def main():
             print ('This behavior file either does not have imaging data, or the imaging files are not named properly. ' +
                    'The script expects to find files with names events.csv, valid_cells.csv, and dropped_frames.csv (if there are dropped frames)')
 
-
+    #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
 #############################################################################################
 #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#

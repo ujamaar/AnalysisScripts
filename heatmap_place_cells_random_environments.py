@@ -8,8 +8,7 @@ from scipy import ndimage # needed to apply gaussian filter
 
 
 def main():
-    #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
-    directory_path ='/Users/njoshi/Desktop/events_test'
+    # specify the various parameters as needed:
     odor_response_time_window = 2000 #time in ms
     distance_bin_size = 50 #distance bin in mm
     speed_threshold = 50 #minimum speed in mm/s for selecting events
@@ -22,18 +21,94 @@ def main():
     #split_laps_in_environment=1212 #to split into odd and even trials
     split_laps_in_environment = 1
 
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+    output_directory_path = '/Users/njoshi/Desktop/output_files'
+    #data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+    #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
     
-    file_names = [os.path.join(directory_path, f)
-        for dirpath, dirnames, files in os.walk(directory_path)
-        for f in files if f.endswith('.csv')]
-    file_names.sort(key=natural_key)
+
+    #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
+
+    #detect all the behavior.csv files in the folder
+    file_names = []
+    for dirpath, dirnames, files in os.walk(data_files_directory_path):
+        for behavior_file in files:
+            if behavior_file.endswith('combined_behavior_and_events.csv'):
+                behavior_file_has_already_been_analyzed = False
+                #now check if there's already a plot for the given file
+                for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path):
+                    for plot_file in plot_files:
+                        if plot_file.startswith(behavior_file,0,18):
+                            behavior_file_has_already_been_analyzed = True
+                            print 'This behavior file has already been plotted: ' + behavior_file
+                            print 'I found this plot: ' + plot_file
+                            print 'Delete this plot to generate a new one.'
+               
+                if(behavior_file_has_already_been_analyzed == False):      
+                    file_names.append(os.path.join(dirpath, behavior_file))
+    # sort the file names to analyze them in a 'natural' alphabetical order
+    file_names.sort(key=natural_key)    
+    print 'Here are all of the behavior files that will be analyzed now:'
+    print file_names
     
-    for mouse_data in file_names:
-        print 'Analyzing this file: '+ mouse_data
-#        if os.path.isfile(mouse_data.replace(".csv","_sorted_place_cells.pdf")):
-#            print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
-#        else:
-        read_data_and_generate_plots(mouse_data,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment)
+    # now look for imaging data for each behavior file and combine all the data into one output file    
+    for behavior_and_events in file_names:
+        print '----------------------------------------------------------------'
+        print '----------------------------------------------------------------'
+        print 'Plotting this file: '+ behavior_and_events
+
+        #create an output folder for the plots, one folder per mouse 
+        # first extract the mouse ID and date from behavior file, to create a folder with the correct name
+        mouse_ID_first_letter = 0
+        file_length = len(behavior_and_events)
+        for name_letter in range (1,file_length):
+            if(behavior_and_events[file_length - name_letter] == 'w' or behavior_and_events[file_length - name_letter] == 'W'):
+                mouse_ID_first_letter = file_length - name_letter
+                break
+        mouse_ID = behavior_and_events[mouse_ID_first_letter:(mouse_ID_first_letter+7)]
+        mouse_ID_and_date = behavior_and_events[mouse_ID_first_letter:(mouse_ID_first_letter+18)]
+        print 'Mouse ID is: %s'%mouse_ID_and_date
+
+        #create create a folder, if it is not already there 
+        mouse_directory_path = output_directory_path + '/' + mouse_ID
+        if mouse_directory_path:
+            if not os.path.isdir(mouse_directory_path):
+                os.makedirs(mouse_directory_path) 
+        
+        plot_name_mouse_ID_and_date = mouse_directory_path + '/' + mouse_ID_and_date
+        read_data_and_generate_plots(behavior_and_events,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment,plot_name_mouse_ID_and_date)
+
+    #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
+
+
+
+
+#    #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
+#
+#    #now fetch the files that need to be analyzed:
+#    #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
+#    directory_path ='/Users/njoshi/Desktop/events_test'
+#    
+#    file_names = [os.path.join(directory_path, f)
+#        for dirpath, dirnames, files in os.walk(directory_path)
+#        for f in files if f.endswith('.csv')]
+#    file_names.sort(key=natural_key)
+#    
+#    for mouse_data in file_names:
+#        print 'Analyzing this file: '+ mouse_data
+##        if os.path.isfile(mouse_data.replace(".csv","_sorted_place_cells.pdf")):
+##            print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
+##        else:
+#        read_data_and_generate_plots(mouse_data,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment)
+#    
+#    #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
+
+
+
+#############################################################################################
+#<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
+#############################################################################################
+
 
 
 #to make sure that the files are processed in the proper order (not really important here, but just in case)
@@ -147,7 +222,7 @@ def split_laps_into_odd_and_even(old_env_seq,total_number_of_frames, lap_count):
 
 
 
-def read_data_and_generate_plots(file_path,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment):
+def read_data_and_generate_plots(file_path,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment,plot_name_mouse_ID_and_date):
     
     event_data = np.loadtxt(file_path, dtype='int', delimiter=',')
     #event_data = event_data[0:22,0:5]
@@ -223,96 +298,6 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 
     ###############################################################################
     #################separate the different laps in each environment###############
-    ############ uncomment to choose odd vs even or earlier vs later ##############
-    ###############################################################################
-       
-#    #################separate odd and even trials of each environment#################
-#    last_env1 = 3
-#    last_env2 = 4
-#    for frame in range(0,total_number_of_frames-1):
-#        frame_env = environment[frame]
-#        frame_lap = lap_count[frame]
-#        next_frame_lap = lap_count[frame+1]
-#
-#        if(frame_lap == next_frame_lap and frame_env == 1 and last_env1 == 2):
-#            environment[frame] = 1
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and last_env1 == 2):
-#            environment[frame] = 1
-#            last_env1 = 1
-#
-#        elif(frame_lap == next_frame_lap and frame_env == 1 and last_env1 == 1):
-#            environment[frame] = 2
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and last_env1 == 1):
-#            environment[frame] = 2
-#            last_env1 = 2
-#
-#        elif(frame_lap == next_frame_lap and frame_env == 2 and last_env2 == 4):
-#            environment[frame] = 3
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and last_env2 == 4):
-#            environment[frame] = 3
-#            last_env2 = 3
-#
-#        elif(frame_lap == next_frame_lap and frame_env == 2 and last_env2 == 3):
-#            environment[frame] = 4
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and last_env2 == 3):
-#            environment[frame] = 4
-#            last_env2 = 4
-#        else:
-#            environment[frame] = -1  
-#
-#    environment[len(environment) -1] = environment[len(environment) -2]
-#    ################# done separating odd and even trials of each environment#################
-
-
-#    #################separate the earlier and later trials of each environment equally#################
-#    env1_half_laps = laps_in_environment[0] / 2
-#    env2_half_laps = 0 #laps_in_environment[1] / 2
-#    
-#    env1_lap_count = 0
-#    env2_lap_count = 0
-#    
-#    for frame in range(0,total_number_of_frames-1):
-#        frame_env = environment[frame]
-#        frame_lap = lap_count[frame]
-#        next_frame_lap = lap_count[frame+1]
-#
-#        if(frame_lap == next_frame_lap and frame_env == 1 and env1_lap_count < env1_half_laps):
-#            environment[frame] = 1
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and env1_lap_count < env1_half_laps):
-#            environment[frame] = 1
-#            env1_lap_count = env1_lap_count + 1
-#
-#        elif(frame_lap == next_frame_lap and frame_env == 1 and env1_lap_count >= env1_half_laps):
-#            environment[frame] = 2
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 1 and env1_lap_count >= env1_half_laps):
-#            environment[frame] = 2
-#            env1_lap_count = env1_lap_count + 1
-#
-#        elif(frame_lap == next_frame_lap and frame_env == 2 and env2_lap_count < env2_half_laps):
-#            environment[frame] = 3
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and env2_lap_count < env2_half_laps):
-#            environment[frame] = 3
-#            env2_lap_count = env2_lap_count + 1
-#
-#        elif(frame_lap == next_frame_lap and frame_env == 2 and env2_lap_count >= env2_half_laps):
-#            environment[frame] = 4
-#        elif(next_frame_lap == frame_lap+1 and frame_env == 2 and env2_lap_count >= env2_half_laps):
-#            environment[frame] = 4
-#            env2_lap_count = env2_lap_count + 1
-#        else:
-#            environment[frame] = -1  
-#
-#    environment[len(environment) -1] = environment[len(environment) -2]
-#
-#    print env1_half_laps
-#    print env2_half_laps    
-#    print 'Env 1 total lap count is: %d'%env1_lap_count
-#    print 'Env 2 total lap count is: %d'%env2_lap_count
-#    ############### done separating the earlier and later trials of each environment equally############
-
-    ###############################################################################
-    #################separate the different laps in each environment###############
-    ############ uncomment to choose odd vs even or earlier vs later ##############
     ###############################################################################
 
 
@@ -377,11 +362,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ###### end of steps to separate the different laps in each environment ########
     ###############################################################################    
     
-    
-    
-
-
-        
+          
         
     #find out the odor sequence for each environment
     #this is to print the correct odor sequence on the x-axis
@@ -650,13 +631,14 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 
     #however, if the filename is in a different format, we will look for the first instance of the letter 'w' from the end of the filename
     filename_starts_at_this_letter = 0
-    for name_letter in range (1,len(file_path)):
-        if(file_path[len(file_path) - name_letter] == 'w' or file_path[len(file_path) - name_letter] == 'W'):
-            filename_starts_at_this_letter = len(file_path) - name_letter
+    file_length = len(file_path)
+    for name_letter in range (1,file_length):
+        if(file_path[file_length - name_letter] == 'w' or file_path[file_length - name_letter] == 'W'):
+            filename_starts_at_this_letter = file_length - name_letter
             break
     name_of_this_file = file_path[filename_starts_at_this_letter:(filename_starts_at_this_letter+18)]
 
-    print 'File name is: %s'%name_of_this_file
+    print 'Mouse ID name is: %s'%name_of_this_file
 
     sequence_of_environments = ''
     for env in range(0,number_of_environments):
@@ -872,11 +854,11 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     
     if len(figs) > 0:
 
-        pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_%1.2f.pdf"%lower_threshold_for_activity)        
+        pdf_name = plot_name_mouse_ID_and_date + '_place_cells_gaussian_events_per_second_%1.2f.pdf'%lower_threshold_for_activity        
         if(split_laps_in_environment == 5050):            
-            pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_earlier_vs_later_%1.2f.pdf"%lower_threshold_for_activity)  
+            pdf_name = plot_name_mouse_ID_and_date + '_place_cells_gaussian_events_per_second_earlier_vs_later_%1.2f.pdf'%lower_threshold_for_activity 
         elif(split_laps_in_environment == 1212):            
-            pdf_name = file_path.replace("behavior_and_events.csv","place_cells_gaussian_events_per_second_odd_vs_even_%1.2f.pdf"%lower_threshold_for_activity)
+            pdf_name = plot_name_mouse_ID_and_date + '_place_cells_gaussian_events_per_second_odd_vs_even_%1.2f.pdf'%lower_threshold_for_activity
  
         pp = PdfPages(pdf_name)
         for fig in figs:
