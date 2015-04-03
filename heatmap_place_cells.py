@@ -13,7 +13,7 @@ def main():
     distance_bin_size = 50 #distance bin in mm
     speed_threshold = 50 #minimum speed in mm/s for selecting events
     gaussian_filter_sigma = 2.00
-    lower_threshold_for_activity = 0.10
+    lower_threshold_for_activity = 0.2
     
     # here use these values:
     #split_laps_in_environment=1  #for no split
@@ -21,10 +21,11 @@ def main():
     #split_laps_in_environment=1212 #to split into odd and even trials
     split_laps_in_environment = 1
 
-    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
-    output_directory_path = '/Users/njoshi/Desktop/output_files'
-    #data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
-    #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
+#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+#    output_directory_path = '/Users/njoshi/Desktop/output_files'
+    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+    #data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/'
+    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
     
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
@@ -34,18 +35,23 @@ def main():
     for dirpath, dirnames, files in os.walk(data_files_directory_path):
         for behavior_file in files:
             if behavior_file.endswith('combined_behavior_and_events.csv'):
+                #file_names.append(os.path.join(dirpath, behavior_file))
+
+
+                # to check if there's already a plot for the given file
+                pdf_name = behavior_file[0:18] + generate_plot_pdf_name(split_laps_in_environment,lower_threshold_for_activity)
                 behavior_file_has_already_been_analyzed = False
-                #now check if there's already a plot for the given file
                 for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path):
                     for plot_file in plot_files:
-                        if plot_file.startswith(behavior_file,0,18):
+                        if (plot_file == pdf_name):
                             behavior_file_has_already_been_analyzed = True
+                            print '----------------------------------------------------------------'
                             print 'This behavior file has already been plotted: ' + behavior_file
-                            print 'I found this plot: ' + plot_file
-                            print 'Delete this plot to generate a new one.'
-               
+                            print 'Delete this plot to generate a new version: ' + os.path.join(dirpath, plot_file)            
                 if(behavior_file_has_already_been_analyzed == False):      
                     file_names.append(os.path.join(dirpath, behavior_file))
+
+                
     # sort the file names to analyze them in a 'natural' alphabetical order
     file_names.sort(key=natural_key)    
     print 'Here are all of the behavior files that will be analyzed now:'
@@ -70,46 +76,32 @@ def main():
         print 'Mouse ID is: %s'%mouse_ID_and_date
 
         #create create a folder, if it is not already there 
-        mouse_directory_path = output_directory_path + '/' + mouse_ID
+        mouse_directory_path = output_directory_path + '/' + mouse_ID  + '/place_cell_plots'
         if mouse_directory_path:
             if not os.path.isdir(mouse_directory_path):
                 os.makedirs(mouse_directory_path) 
         
         plot_name_mouse_ID_and_date = mouse_directory_path + '/' + mouse_ID_and_date
-        read_data_and_generate_plots(behavior_and_events,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment,plot_name_mouse_ID_and_date)
+        output_plot_pdf_name = plot_name_mouse_ID_and_date + generate_plot_pdf_name(split_laps_in_environment,lower_threshold_for_activity)
+        read_data_and_generate_plots(behavior_and_events,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment,output_plot_pdf_name)
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
-
-
-
-
-#    #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
-#
-#    #now fetch the files that need to be analyzed:
-#    #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
-#    directory_path ='/Users/njoshi/Desktop/events_test'
-#    
-#    file_names = [os.path.join(directory_path, f)
-#        for dirpath, dirnames, files in os.walk(directory_path)
-#        for f in files if f.endswith('.csv')]
-#    file_names.sort(key=natural_key)
-#    
-#    for mouse_data in file_names:
-#        print 'Analyzing this file: '+ mouse_data
-##        if os.path.isfile(mouse_data.replace(".csv","_sorted_place_cells.pdf")):
-##            print 'A pdf already exists for this file. Delete the pdf to generate a new one.'
-##        else:
-#        read_data_and_generate_plots(mouse_data,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment)
-#    
-#    #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
-
 
 
 #############################################################################################
 #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 #############################################################################################
 
+def generate_plot_pdf_name(split_laps_in_environment,lower_threshold_for_activity):
 
+    pdf_name = '_place_cells_%1.2f.pdf'%lower_threshold_for_activity
+       
+    if(split_laps_in_environment == 5050):            
+        pdf_name = '_place_cells_earlier_vs_later_%1.2f.pdf'%lower_threshold_for_activity 
+    elif(split_laps_in_environment == 1212):            
+        pdf_name = '_place_cells_odd_vs_even_%1.2f.pdf'%lower_threshold_for_activity    
+
+    return pdf_name
 
 #to make sure that the files are processed in the proper order (not really important here, but just in case)
 def natural_key(string_):
@@ -222,7 +214,7 @@ def split_laps_into_odd_and_even(old_env_seq,total_number_of_frames, lap_count):
 
 
 
-def read_data_and_generate_plots(file_path,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment,plot_name_mouse_ID_and_date):
+def read_data_and_generate_plots(file_path,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment,plot_pdf_name):
     
     event_data = np.loadtxt(file_path, dtype='int', delimiter=',')
     #event_data = event_data[0:22,0:5]
@@ -374,8 +366,8 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     bins_in_environment = np.zeros(number_of_environments,dtype='int')
     env_starts_at_this_bin = np.zeros(number_of_environments+1,dtype='int')
     total_number_distance_bins_in_all_env = 0
-    expansion_factor = 0    
-
+    #expansion_factor = 0    
+    ###############################################################################
     for env in range(0,number_of_environments):
 
         max_distance_point_in_env = 0
@@ -384,25 +376,34 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                 max_distance_point_in_env = distance[frame]
         env_track_lengths[env] = (max_distance_point_in_env / 2000) * 2000 #this will round down the distance value to the nearest multiple of 2000mm (hopefully giving us 2m, 4m or 8m values)
 
-        expansion_factor = env_track_lengths[env] / 4000  #just in case the virtual track has been expanded
+        #expansion_factor = env_track_lengths[env] / 4000  #just in case the virtual track has been expanded
         bins_in_environment[env] = env_track_lengths[env] / distance_bin_size
         env_starts_at_this_bin[env+1] = env_starts_at_this_bin[env] + bins_in_environment[env]
      
-        odor_start_and_end_points[env*6 + 0] = 1000*expansion_factor #this is where the odor starts
-        odor_start_and_end_points[env*6 + 1] = 1500*expansion_factor
-        odor_start_and_end_points[env*6 + 2] = 2000*expansion_factor
-        odor_start_and_end_points[env*6 + 3] = 2500*expansion_factor
-        odor_start_and_end_points[env*6 + 4] = 3000*expansion_factor
-        odor_start_and_end_points[env*6 + 5] = 3500*expansion_factor
 
-        for column in range(1,total_number_of_frames):
-            if(environment[column] == env + 1): #look at first lap of the new environment
-                if(distance[column] > odor_start_and_end_points[env*6 + 0] and distance[column] < odor_start_and_end_points[env*6 + 1] and odor_sequence[env*3+0] <= 0):  #find first odor
-                    odor_sequence[env*3+0] = odor[column]
-                elif(distance[column] > odor_start_and_end_points[env*6 + 2] and distance[column] < odor_start_and_end_points[env*6 + 3] and odor_sequence[env*3+1] <= 0):  #find second odor
-                    odor_sequence[env*3+1] = odor[column]
-                elif(distance[column] > odor_start_and_end_points[env*6 + 4] and distance[column] < odor_start_and_end_points[env*6 + 5] and odor_sequence[env*3+2] <= 0):  #find third odor
-                    odor_sequence[env*3+2] = odor[column] 
+        #this part is for calculating the sequence of odors in each environment
+        #at each encounter of new environment, we take note of every time a non-zero odor turns on/off and the distances at which this happens
+        odor_count_in_this_sequence = 0
+        lap_under_evaluation = 0
+        for env_frame in range(1,total_number_of_frames):
+            if(environment[env_frame] == env+1 and odor[env_frame] > odor[env_frame-1]):
+                lap_under_evaluation = lap_count[env_frame]
+                odor_sequence[env*3 + odor_count_in_this_sequence] = odor[env_frame]
+                sum_of_odor_start_points = distance[env_frame] + odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2]
+                odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2] = sum_of_odor_start_points #this is where the odor starts, distance has been rounded to nearest 50mm
+            elif(environment[env_frame] == env+1 and odor[env_frame] < odor[env_frame-1]):
+                sum_of_odor_end_points = distance[env_frame] + odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2 + 1]
+                odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2 + 1] = sum_of_odor_end_points
+                odor_count_in_this_sequence = odor_count_in_this_sequence + 1
+            elif(lap_count[env_frame] > lap_under_evaluation or odor_count_in_this_sequence >= 3):
+                odor_count_in_this_sequence = 0
+
+        print odor_start_and_end_points
+        for odor_point in range(0,6):
+            average_distance_odor_point = odor_start_and_end_points[env*6 + odor_point] / laps_in_environment[env]
+            odor_start_and_end_points[env*6 + odor_point] = average_distance_odor_point
+
+    ###############################################################################
 
 
     total_number_distance_bins_in_all_env = np.sum(bins_in_environment)
@@ -428,7 +429,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         elif (odor_sequence[odor] == 7):
             odor_sequence_in_letters[odor] = 'G'
         else:
-            odor_sequence_in_letters[odor] = '0'            
+            odor_sequence_in_letters[odor] = ' '            
  
             
     print 'The odors were presented in this sequence (3 odors per environment):'
@@ -695,12 +696,17 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
             ax  = plt.subplot2grid((1,1), (0,0), rowspan=4,colspan=4)
             
             #to label the odor sequence on the plots
-            od = odor_sequence_in_letters[env*3:(env+1)*3]            
-            sort_od = odor_sequence_in_letters[plot_env*3:(plot_env+1)*3] 
+            od = odor_sequence_in_letters[env*3:(env+1)*3] 
+            sort_od = odor_sequence_in_letters[plot_env*3:(plot_env+1)*3]
 
-            plt.figtext(0.32,0.91, "%s"%od[0], fontsize='large', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.46,0.91, "%s"%od[1], fontsize='large', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.60,0.91, "%s"%od[2], fontsize='large', color=plot_color[plot_env], ha ='left')            
+            odor_label1 = 0.13 + 0.60 * (float(odor_start_and_end_points[env*6+0]) / float(env_track_lengths[env]))
+            odor_label2 = 0.13 + 0.60 * (float(odor_start_and_end_points[env*6+2]) / float(env_track_lengths[env]))            
+            odor_label3 = 0.13 + 0.60 * (float(odor_start_and_end_points[env*6+4]) / float(env_track_lengths[env]))            
+            
+           
+            plt.figtext(odor_label1,0.91, "%s"%od[0], fontsize='large', color=plot_color[plot_env], ha ='left')
+            plt.figtext(odor_label2,0.91, "%s"%od[1], fontsize='large', color=plot_color[plot_env], ha ='left')
+            plt.figtext(odor_label3,0.91, "%s"%od[2], fontsize='large', color=plot_color[plot_env], ha ='left')            
 
             plt.figtext(0.84,0.88,"Env sequence:",                                         fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.85,"%s" %sequence_of_environments,                          fontsize='x-small', color=plot_color[plot_env], ha ='left')
@@ -720,10 +726,6 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
             plt.figtext(0.84,0.15,"min.activity: %1.3f" %lower_threshold_for_activity,     fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.1,"Cells in env: %d" %data_array.shape[0],                  fontsize='x-small', color=plot_color[plot_env], ha ='left')
             
-      
-
-
-
             plt.figtext(0.03,0.15,"%d" %data_array.shape[0],                               fontsize='large', color = plot_color[plot_env], ha ='left')
             plt.figtext(0.02,0.10,"cells",                                                 fontsize='large', color = plot_color[plot_env], ha ='left')
 
@@ -741,19 +743,13 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #            ax.xaxis.tick_bottom() 
 #            plt.setp(ax.get_xticklabels(),visible=True)
 
-
             ax.xaxis.tick_bottom()
-            if(env_track_lengths[env] == 4000):
-                ax.set_xlabel('Distance(m)')
-                plt.setp(ax,xticklabels=['0','0.5','1','1.5','2','2.5','3','3.5','4'],visible=True)
-            elif(env_track_lengths[env] == 8000):
-                ax.set_xlabel('Distance(m)')
-                plt.setp(ax,xticklabels=['0','1','2','3','4','5','6','7','8'],visible=True)
-            else:
-                ax.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
-                plt.setp(ax.get_xticklabels(),visible=True)
-
-            
+            x1 = float(env_track_lengths[env])
+            x2 = x1 / (8 * 1000) # there are eight points on the x-axis, other than the 0
+            x3 = [x2*0, x2*1 , x2*2 , x2*3 , x2*4 , x2*5 , x2*6 , x2*7 , x2*8 ]
+            ax.set_xlabel('Distance(m)')
+            plt.setp(ax,xticklabels=x3,visible=True)
+           
             plt.xlim (0,bins_in_environment[env])
             plt.ylim (0,data_array.shape[0]) 
             plt.gca().invert_yaxis()
@@ -817,21 +813,22 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         plt.setp(ax1.get_yticklabels(),visible=True)
 
         ax1.xaxis.tick_bottom()
-        if(env_track_lengths[env] == 4000):
-            ax1.set_xlabel('Distance(m)')
-            plt.setp(ax1,xticklabels=['0','0.5','1','1.5','2','2.5','3','3.5','4'],visible=True)
-        elif(env_track_lengths[env] == 8000):
-            ax1.set_xlabel('Distance(m)')
-            plt.setp(ax1,xticklabels=['0','1','2','3','4','5','6','7','8'],visible=True)
-        else:
-            ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
-            plt.setp(ax1.get_xticklabels(),visible=True)
+        x1 = float(env_track_lengths[env])
+        x2 = x1 / (8 * 1000) # there are eight points on the x-axis, other than the 0
+        x3 = [x2*0, x2*1 , x2*2 , x2*3 , x2*4 , x2*5 , x2*6 , x2*7 , x2*8 ]
+        ax1.set_xlabel('Distance(m)')
+        plt.setp(ax1,xticklabels=x3,visible=True)
 
         #to label the odor sequence on the plots
-        od = odor_sequence_in_letters[env*3:(env+1)*3] 
-        plt.figtext(0.35,0.91, "%s"%od[0], fontsize='large', color=plot_color[plot_env], ha ='left')
-        plt.figtext(0.55,0.91, "%s"%od[1], fontsize='large', color=plot_color[plot_env], ha ='left')
-        plt.figtext(0.75,0.91, "%s"%od[2], fontsize='large', color=plot_color[plot_env], ha ='left') 
+        od = odor_sequence_in_letters[env*3:(env+1)*3]
+
+        odor_label1 = 0.13 + 0.75 * (float(odor_start_and_end_points[env*6+0]) / float(env_track_lengths[env]))
+        odor_label2 = 0.13 + 0.75 * (float(odor_start_and_end_points[env*6+2]) / float(env_track_lengths[env]))            
+        odor_label3 = 0.13 + 0.75 * (float(odor_start_and_end_points[env*6+4]) / float(env_track_lengths[env])) 
+        
+        plt.figtext(odor_label1,0.91, "%s"%od[0], fontsize='large', color=plot_color[plot_env], ha ='left')
+        plt.figtext(odor_label2,0.91, "%s"%od[1], fontsize='large', color=plot_color[plot_env], ha ='left')
+        plt.figtext(odor_label3,0.91, "%s"%od[2], fontsize='large', color=plot_color[plot_env], ha ='left') 
         
         #color_legend = plt.colorbar(heatmap,aspect=30)
         #fig.delaxes(fig.axes[3]) #here axis 0 = plot in ax, 1 = colorbar in ax, 2 = plot in ax1, 3 = heatmap in ax1
@@ -852,30 +849,11 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #### done generating plots for normalized average speed in each environment ###
 ###############################################################################
     
-    if len(figs) > 0:
-
-        pdf_name = plot_name_mouse_ID_and_date + '_place_cells_gaussian_events_per_second_%1.2f.pdf'%lower_threshold_for_activity        
-        if(split_laps_in_environment == 5050):            
-            pdf_name = plot_name_mouse_ID_and_date + '_place_cells_gaussian_events_per_second_earlier_vs_later_%1.2f.pdf'%lower_threshold_for_activity 
-        elif(split_laps_in_environment == 1212):            
-            pdf_name = plot_name_mouse_ID_and_date + '_place_cells_gaussian_events_per_second_odd_vs_even_%1.2f.pdf'%lower_threshold_for_activity
- 
-        pp = PdfPages(pdf_name)
+    if len(figs) > 0: 
+        pp = PdfPages(plot_pdf_name)
         for fig in figs:
                 pp.savefig(fig,dpi=300,edgecolor='r')
         pp.close()
-
-        #for plots of odd vs. even trials or earlier vs. later trials
-#        figs_to_be_saved = [1,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0,1,1,1,1]
-#        figs_to_be_saved = [1,0,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,1,1,1] #more figure comparisons
-#    
-#        figs_to_be_saved = [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1]  #when there is just one starting environment
-#        figs_to_be_saved = [1,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,1,1,1,1]  #when there is just one starting environment, more comparisons
-
-#        for fig in range(0,len(figs)):
-#            if(figs_to_be_saved[fig] == 1):            
-#                pp.savefig(figs[fig],dpi=300,edgecolor='r')
-#        pp.close()
 
 ###############################################################################
 

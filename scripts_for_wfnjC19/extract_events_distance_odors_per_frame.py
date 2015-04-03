@@ -13,8 +13,8 @@ def main():
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
-    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
-    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
     
     #detect all the behavior.csv files in the folder
     file_names = []

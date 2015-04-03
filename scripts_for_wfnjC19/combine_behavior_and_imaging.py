@@ -13,8 +13,8 @@ def main():
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
-    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
-    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
     
     #detect all the behavior.csv files in the folder
     file_names = []
@@ -96,8 +96,8 @@ def natural_key(string_):
 
 
 def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file, dropped_frames_file,frame_ID_adjustment_factor,output_file_name):
-
-    #read the behavior.csv file and load it into a matrix called raw_behavior    
+    
+    #read the behavior.csv file and load it into a matrix called raw_behavior
     raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',',skiprows=2)
 
     #############################################################################################    
@@ -226,10 +226,7 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     #############################################################################################
 
     #use and save only the relevant columns from the raw behavior file
-    total_number_of_frames = max(raw_behavior[:,0])
-    print 'Total number of frames is: %d'%total_number_of_frames
-    behavior = numpy.empty((total_number_of_frames,9),dtype='int')
-    binned_distance = numpy.zeros(total_number_of_frames,dtype='int')
+    behavior = numpy.empty((raw_behavior[len(raw_behavior) - 1][0],9),dtype='int')
     frame_count = 0
     
     for row in range(0, len(raw_behavior)):
@@ -246,11 +243,7 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
             behavior[frame_count][6] = raw_behavior[row][9]    #
             behavior[frame_count][7] = raw_behavior[row][10]   #lap count
             behavior[frame_count][8] = speed[row]              #speed
-
-            binned_distance[frame_count] = raw_behavior[row][7] / 100
-
             frame_count = raw_behavior[row][0] 
-
     
     print "Behavior array size is: "
     print behavior.shape
@@ -260,7 +253,7 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     
 ###############################################################################
 
-
+    #read the valid_cells file into an array
     valid_cells = numpy.loadtxt(valid_cells_file, dtype='int', comments='#', delimiter=',')
     print "Number of putative cells: %d"%valid_cells.size
     number_of_valid_cells = numpy.sum(valid_cells) 
@@ -309,6 +302,7 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     print 'The last event was registered at frame# %d'%max_frame_with_event
 ###############################################################################    
 
+
     # run this only if there are missing frames
     dropped_frames = []
     if (dropped_frames_file == 0):
@@ -319,7 +313,7 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
         print "Number of dropped frames: %d"%dropped_frames.size
 ###############################################################################
 
-    print 'Now we will nicely pack and save all this information in one csv file:'
+    #combine all the data into one matrix now
     events_adjusted_for_missing_frames = numpy.empty((number_of_frames,behavior.shape[1] + number_of_valid_cells),dtype='int')
 
     adjust_for_missing_frames = 0
@@ -342,52 +336,14 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     
     print 'The saved array size is:'
     print events_adjusted_for_missing_frames.shape
-    #now save the array as a csv file in the same location as the input files
+    #now save the array as a csv file in the same location as the input file
+    #numpy.savetxt(raw_behavior_file.replace('.csv','_and_events.csv'), events_adjusted_for_missing_frames, fmt='%1.3f', delimiter=',', newline='\n')
+#    save_file_name = raw_behavior_file[0:-16] + '_behavior_and_events.csv'
     save_file_name = output_file_name + '_combined_behavior_and_events.csv'
     print save_file_name
-    numpy.savetxt(save_file_name, events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n') 
-###############################################################################
-
-## we are saving the following files for mutual information analysis using Matlab code provided by Lacey from the Schnitzer Lab:
-#    numpy.savetxt(raw_behavior_file[0:-16] + '_cell_events_per_frame.csv', events_by_frame , fmt='%i', delimiter=',', newline='\n') 
-    events_by_frame_with_threshold = []
-    binned_distance_with_threshold = [0]
-    odor_with_threshold = [0]
-
-    for this_frame in range(0,total_number_of_frames):
-        if(behavior[this_frame][5] <= 4000 and behavior[this_frame][8] >= 50):
-#            events_by_frame_with_threshold.append(events_by_frame[this_frame,:])
-            if(len(events_by_frame_with_threshold) == 0):
-                events_by_frame_with_threshold = events_by_frame[this_frame,:]
-                binned_distance_with_threshold[0] = binned_distance[this_frame]
-                odor_with_threshold[0] = behavior[this_frame][2]
-            else:
-                events_by_frame_with_threshold = numpy.vstack([events_by_frame_with_threshold, events_by_frame[this_frame,:]])
-                binned_distance_with_threshold.append(binned_distance[this_frame])
-                odor_with_threshold.append(behavior[this_frame][2])
-    
-#    for this_frame in range(0,total_number_of_frames):
-#        if(behavior[this_frame][5] <= 4000 and behavior[this_frame][8] >= 50):
-#            events_by_frame_with_threshold[this_frame,:] = events_by_frame[this_frame,:]
-
-    odors_in_this_recording = []
-    for this_frame in range(0,total_number_of_frames):
-        if(behavior[this_frame][2] > 0 and behavior[this_frame][2] not in odors_in_this_recording):
-            odors_in_this_recording.append(behavior[this_frame][2])            
-    print 'These odors were presented in this recording:'
-    print odors_in_this_recording
-    
-    for this_odor in odors_in_this_recording:
-        separated_odor_with_threshold = numpy.zeros(len(odor_with_threshold),dtype='int')
-        for this_frame in range(0,len(odor_with_threshold)):
-            if(odor_with_threshold[this_frame] == this_odor):
-                separated_odor_with_threshold[this_frame] = 1 #behavior[this_frame][2]
-#        numpy.savetxt(raw_behavior_file[0:-16] + '_only_odor_%d.csv'%this_odor, separated_odor_with_threshold , fmt='%i', delimiter=',', newline='\n')  
-        numpy.savetxt(output_file_name + '_odor_%d.csv'%this_odor, separated_odor_with_threshold , fmt='%i', delimiter=',', newline='\n')  
-
-    numpy.savetxt(output_file_name + '_cell_events_per_frame.csv', events_by_frame_with_threshold , fmt='%i', delimiter=',', newline='\n')
-    numpy.savetxt(output_file_name + '_binned_distance.csv', binned_distance_with_threshold , fmt='%i', delimiter=',', newline='\n')     
-#    numpy.savetxt(raw_behavior_file[0:-16] + '_odor_per_frame_with_threshold.csv', odor_with_threshold , fmt='%i', delimiter=',', newline='\n') 
+#    numpy.savetxt(output_dir_path + '/cell_events_per_frame.csv', events_by_frame_with_threshold , fmt='%i', delimiter=',', newline='\n')
+    numpy.savetxt(save_file_name, events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')    
+    #numpy.savetxt(raw_behavior_file.replace('.csv','_behavior_and_events.csv'), events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n')
 ###############################################################################
 
 main()
