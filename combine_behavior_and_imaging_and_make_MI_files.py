@@ -13,10 +13,10 @@ def main():
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
-    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
 #    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
     
-    replace_previous_versions_of_output_files = True
+    replace_previous_versions_of_output_files = False
     
     #detect all the behavior.csv files in the folder
     file_names = []
@@ -304,7 +304,10 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
         frames_in_this_cell = len(valid_cell_events[this_cell])
         for this_frame in range(0,frames_in_this_cell):
             event_frame_index = (valid_cell_events[this_cell][this_frame] -1)*frame_ID_adjustment_factor #multiply by the adjustment factor because imaging data has been down sampled (e.g. 10 frames/sec down sampled to 5)
-            events_by_frame[event_frame_index][this_cell] = 1
+            if(event_frame_index < number_of_frames):
+                events_by_frame[event_frame_index][this_cell] = 1
+            else:
+                print 'Imaging file has more frames than the behavior file. This extra frame will be ignored: %d'%event_frame_index
             if(event_frame_index > max_frame_with_event):
                 max_frame_with_event = event_frame_index
     print 'The last event was registered at frame# %d'%max_frame_with_event

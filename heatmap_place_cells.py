@@ -13,7 +13,7 @@ def main():
     distance_bin_size = 50 #distance bin in mm
     speed_threshold = 50 #minimum speed in mm/s for selecting events
     gaussian_filter_sigma = 2.00
-    lower_threshold_for_activity = 0.2
+    lower_threshold_for_activity = 0.15
     
     # here use these values:
     #split_laps_in_environment=1  #for no split
@@ -21,13 +21,13 @@ def main():
     #split_laps_in_environment=1212 #to split into odd and even trials
     split_laps_in_environment = 1
 
-    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
-    output_directory_path = '/Users/njoshi/Desktop/output_files'
+#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+#    output_directory_path = '/Users/njoshi/Desktop/output_files'
 
-#    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
-#    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
+    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
-    replace_previous_versions_of_plots = True   
+    replace_previous_versions_of_plots = False  
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
@@ -77,7 +77,7 @@ def main():
         print 'Mouse ID is: %s'%mouse_ID_and_date
 
         #create create a folder, if it is not already there 
-        mouse_directory_path = output_directory_path + '/' + mouse_ID  + '/place_cell_plots'
+        mouse_directory_path = output_directory_path + '/' + mouse_ID  + '/place_cell_plots_%1.2f'%lower_threshold_for_activity
         if mouse_directory_path:
             if not os.path.isdir(mouse_directory_path):
                 os.makedirs(mouse_directory_path) 
@@ -252,7 +252,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     print 'Number of environments = %d' %number_of_environments
 
     
-    running_speed = behavior_and_event_data[11,:]
+    running_speed = behavior_and_event_data[11,:] #speed is in mm/s
     print 'Maximum speed was: %f' %max(running_speed)    
     print 'Minimum speed was: %f' %min(running_speed)
     
@@ -496,7 +496,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                         total_time_spent_in_this_bin = total_time_per_bin[current_bin] + 50.0 / running_speed[frame] 
                         total_time_per_bin[current_bin] = total_time_spent_in_this_bin
                 
-                #calculate average speed per bin for each environment
+                #calculate average speed (mm/s) per bin for each environment
                 if (cell == 0):
 #                    current_bin = env_starts_at_this_bin[ lap_count[frame] / 50] + distance[frame] / distance_bin_size
                     current_bin = env_starts_at_this_bin[environment[frame]-1] + distance[frame]/distance_bin_size
@@ -807,15 +807,16 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 
         this_env_average_speed_per_bin = average_speed_per_bin[env_starts_at_this_bin[env]:env_starts_at_this_bin[env+1]] 
         
-        max_average_speed = max(this_env_average_speed_per_bin)
-        normalized_average_speed = [(x / max_average_speed) for x in this_env_average_speed_per_bin]
-
+#        max_average_speed = max(this_env_average_speed_per_bin)
+#        normalized_average_speed = [(x / max_average_speed) for x in this_env_average_speed_per_bin]
         
         ax1 = plt.subplot2grid((1,1), (0,0), rowspan=1,colspan=1)
-        plt.plot(range(bins_in_environment[env]),normalized_average_speed,'r-', linewidth = 0.1)
-        #ax1.set_xlabel('Distance bin (%d mm each)'%distance_bin_size)
+        #plt.plot(range(bins_in_environment[env]),normalized_average_speed,'r-', linewidth = 0.1)
         ax1.set_ylabel('Normalized Average Speed',fontsize='large')
-        ax1.set_ylim(0,1)
+        plt.plot(range(bins_in_environment[env]),this_env_average_speed_per_bin,'r-', linewidth = 0.1)
+        ax1.set_ylabel('Average Speed (mm/s)',fontsize='large')
+        #ax1.set_ylim(0,(max(this_env_average_speed_per_bin)/100)*100 + 100)
+        ax1.set_ylim(0,max(500,max(this_env_average_speed_per_bin)))
         plt.tick_params(axis='y', which='both', labelleft='on', labelright='on')
         plt.setp(ax1.get_yticklabels(),visible=True)
 
