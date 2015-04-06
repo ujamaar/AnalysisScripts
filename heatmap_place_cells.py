@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt # needed for plotting graphs
-import numpy as np # needed for various math tasks
+import numpy # needed for various math tasks
 from matplotlib.ticker import MaxNLocator #y-axis labels
 from matplotlib.backends.backend_pdf import PdfPages # for saving figures as pdf
 import os # needed to arrange filenames alphabetically
@@ -21,12 +21,13 @@ def main():
     #split_laps_in_environment=1212 #to split into odd and even trials
     split_laps_in_environment = 1
 
-#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
-#    output_directory_path = '/Users/njoshi/Desktop/output_files'
-    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
-    #data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/'
-    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
-    
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+    output_directory_path = '/Users/njoshi/Desktop/output_files'
+
+#    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+#    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
+
+    replace_previous_versions_of_plots = True   
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
@@ -34,22 +35,22 @@ def main():
     file_names = []
     for dirpath, dirnames, files in os.walk(data_files_directory_path):
         for behavior_file in files:
-            if behavior_file.endswith('combined_behavior_and_events.csv'):
-                #file_names.append(os.path.join(dirpath, behavior_file))
-
-
-                # to check if there's already a plot for the given file
-                pdf_name = behavior_file[0:18] + generate_plot_pdf_name(split_laps_in_environment,lower_threshold_for_activity)
-                behavior_file_has_already_been_analyzed = False
-                for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path):
-                    for plot_file in plot_files:
-                        if (plot_file == pdf_name):
-                            behavior_file_has_already_been_analyzed = True
-                            print '----------------------------------------------------------------'
-                            print 'This behavior file has already been plotted: ' + behavior_file
-                            print 'Delete this plot to generate a new version: ' + os.path.join(dirpath, plot_file)            
-                if(behavior_file_has_already_been_analyzed == False):      
+            if behavior_file.endswith('combined_behavior_and_events.csv'):                
+                if(replace_previous_versions_of_plots == True):
                     file_names.append(os.path.join(dirpath, behavior_file))
+                else:
+                    # to check if there's already a plot for the given file
+                    pdf_name = behavior_file[0:18] + generate_plot_pdf_name(split_laps_in_environment,lower_threshold_for_activity)
+                    behavior_file_has_already_been_analyzed = False
+                    for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path):
+                        for plot_file in plot_files:
+                            if (plot_file == pdf_name):
+                                behavior_file_has_already_been_analyzed = True
+                                print '----------------------------------------------------------------'
+                                print 'This behavior file has already been plotted: ' + behavior_file
+                                print 'Delete this plot to generate a new version: ' + os.path.join(dirpath, plot_file)            
+                    if(behavior_file_has_already_been_analyzed == False):      
+                        file_names.append(os.path.join(dirpath, behavior_file))
 
                 
     # sort the file names to analyze them in a 'natural' alphabetical order
@@ -113,7 +114,7 @@ def natural_key(string_):
 def split_laps_into_earlier_and_later(old_env_seq,total_number_of_frames, lap_count,laps_in_environment):  
     #################separate the earlier and later trials of each environment equally#################
 
-    new_environment_sequence = np.zeros(total_number_of_frames,dtype='int')
+    new_environment_sequence = numpy.zeros(total_number_of_frames,dtype='int')
         
     env1_half_laps = 0
     env2_half_laps = 0
@@ -173,7 +174,7 @@ def split_laps_into_earlier_and_later(old_env_seq,total_number_of_frames, lap_co
 def split_laps_into_odd_and_even(old_env_seq,total_number_of_frames, lap_count):       
     #################separate odd and even trials of each environment#################
 
-    new_environment_sequence = np.zeros(total_number_of_frames,dtype='int')
+    new_environment_sequence = numpy.zeros(total_number_of_frames,dtype='int')
     last_env1 = 2
     last_env2 = 4
     for frame in range(0,total_number_of_frames-1):
@@ -216,45 +217,48 @@ def split_laps_into_odd_and_even(old_env_seq,total_number_of_frames, lap_count):
 
 def read_data_and_generate_plots(file_path,odor_response_time_window, distance_bin_size,speed_threshold,gaussian_filter_sigma,lower_threshold_for_activity,split_laps_in_environment,plot_pdf_name):
     
-    event_data = np.loadtxt(file_path, dtype='int', delimiter=',')
-    #event_data = event_data[0:22,0:5]
+    behavior_and_event_data = numpy.loadtxt(file_path, dtype='int', delimiter=',')
+    
     #to plot time as x-axis, transpose the whole array
-    event_data = event_data.transpose()
+    behavior_and_event_data = behavior_and_event_data.transpose()
     print 'In this recording:'
-    print "Events array size is: (%d ,%d)" %(event_data.shape[0], event_data.shape[1])
+    print "Events array size is: (%d ,%d)" %(behavior_and_event_data.shape[0], behavior_and_event_data.shape[1])
     
     #row 0 = frame number
     #row 1 = time
     #row 2 = odor
     #row 3 = licks
     #row 4 = rewards
-    #row 5 = distance
-    #row 6 = lap
-    #row 7 = environment
-    #row 8 = speed
-    #row 9 to last row = event data for cells in this recording
+    #row 5 = initial drops
+    #row 6 = reward window
+    #row 7 = distance
+    #row 8 = total distance
+    #row 9 = lap
+    #row 10 = environment
+    #row 11 = speed
+    #row 12 to last row = event data for cells in this recording
     
-    #time_stamp = event_data[1,:]
+    #time_stamp = behavior_and_event_data[1,:]
 
-    odor = event_data[2,:]
-    lap_count = event_data[6,:]
+    odor = behavior_and_event_data[2,:]
+    lap_count = behavior_and_event_data[9,:]
     total_laps = max(lap_count) + 1
     print 'Number of laps = %d' %total_laps
     
-    distance = event_data[5,:] 
-    environment = event_data[7,:]
+    distance = behavior_and_event_data[7,:] 
+    environment = behavior_and_event_data[10,:]
         
     number_of_environments = max(environment)
     print 'Number of environments = %d' %number_of_environments
 
     
-    running_speed = event_data[8,:]
+    running_speed = behavior_and_event_data[11,:]
     print 'Maximum speed was: %f' %max(running_speed)    
     print 'Minimum speed was: %f' %min(running_speed)
     
     #np.savetxt(file_path.replace('.csv','_speed_per_bin.csv'), running_speed, fmt='%i', delimiter=',', newline='\n')
     #delete the desired number of rows/columns in the desired axis
-    event_data = np.delete(event_data, (0,1,2,3,4,5,6,7,8), axis=0) #here we delete the first 8 rows, which contain the behavior data
+    event_data = numpy.delete(behavior_and_event_data, (0,1,2,3,4,5,6,7,8,9,10,11), axis=0) #here we delete the first 12 rows, which contain the behavior data
     
     total_number_of_cells = event_data.shape[0]
     print 'Number of cells = %d' %total_number_of_cells
@@ -280,7 +284,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     print 'Environments are presented in this sequence:'
     print environment_sequence
 
-    laps_in_environment = np.zeros(number_of_environments,dtype='int')        
+    laps_in_environment = numpy.zeros(number_of_environments,dtype='int')        
     for env in range(0,len(environment_sequence)):
         for current_env in range(0,number_of_environments):
             if(environment_sequence[env] == current_env+1):
@@ -312,7 +316,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         print 'Environments are presented in this sequence (after separating earlier and later trials):'
         print environment_sequence
     
-        laps_in_environment = np.zeros(number_of_environments,dtype='int')        
+        laps_in_environment = numpy.zeros(number_of_environments,dtype='int')        
         for env in range(0,len(environment_sequence)):
             for current_env in range(0,number_of_environments):
                 if(environment_sequence[env] == current_env+1):
@@ -340,7 +344,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         print 'Environments are presented in this sequence (after separating odd and even trials):'
         print environment_sequence
     
-        laps_in_environment = np.zeros(number_of_environments,dtype='int')        
+        laps_in_environment = numpy.zeros(number_of_environments,dtype='int')        
         for env in range(0,len(environment_sequence)):
             for current_env in range(0,number_of_environments):
                 if(environment_sequence[env] == current_env+1):
@@ -360,11 +364,11 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     #this is to print the correct odor sequence on the x-axis
     #and find out the track length in each environment 
       
-    odor_sequence = np.zeros((number_of_environments*3),dtype='int')
-    odor_start_and_end_points = np.zeros((number_of_environments*6),dtype='int')   # 3 odors, 3 start points + 3 end points = 6 total points
-    env_track_lengths = np.zeros(number_of_environments,dtype='int')
-    bins_in_environment = np.zeros(number_of_environments,dtype='int')
-    env_starts_at_this_bin = np.zeros(number_of_environments+1,dtype='int')
+    odor_sequence = numpy.zeros((number_of_environments*3),dtype='int')
+    odor_start_and_end_points = numpy.zeros((number_of_environments*6),dtype='int')   # 3 odors, 3 start points + 3 end points = 6 total points
+    env_track_lengths = numpy.zeros(number_of_environments,dtype='int')
+    bins_in_environment = numpy.zeros(number_of_environments,dtype='int')
+    env_starts_at_this_bin = numpy.zeros(number_of_environments+1,dtype='int')
     total_number_distance_bins_in_all_env = 0
     #expansion_factor = 0    
     ###############################################################################
@@ -398,18 +402,21 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
             elif(lap_count[env_frame] > lap_under_evaluation or odor_count_in_this_sequence >= 3):
                 odor_count_in_this_sequence = 0
 
-        print odor_start_and_end_points
+
         for odor_point in range(0,6):
             average_distance_odor_point = odor_start_and_end_points[env*6 + odor_point] / laps_in_environment[env]
             odor_start_and_end_points[env*6 + odor_point] = average_distance_odor_point
 
     ###############################################################################
 
-
-    total_number_distance_bins_in_all_env = np.sum(bins_in_environment)
     
-    print 'The odor numbers (3 odors per environment):'
+    total_number_distance_bins_in_all_env = numpy.sum(bins_in_environment)
+    
+    print 'Odor sequence in each environment (3 odors per environment):'
     print odor_sequence
+
+    print 'The odors turn on and off at these distance points along the track:'
+    print odor_start_and_end_points
 
     odor_sequence_in_letters = [i for i in range(len(odor_sequence))] 
     #change odor labels from numbers to letters
@@ -452,9 +459,9 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ####################### calculate total events per bin ########################
     ###############################################################################
     
-    total_events_per_bin_per_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
-    total_time_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')    
-    average_speed_per_bin = np.zeros(total_number_distance_bins_in_all_env,dtype='float')   
+    total_events_per_bin_per_cell = numpy.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
+    total_time_per_bin = numpy.zeros(total_number_distance_bins_in_all_env,dtype='float')    
+    average_speed_per_bin = numpy.zeros(total_number_distance_bins_in_all_env,dtype='float')   
     
 #    for cell in range(0,total_number_of_cells):    
 #        if (cell % 50 == 0):
@@ -508,7 +515,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 
     #np.savetxt(file_path.replace('.csv','_total_events_per_bin.csv'), total_events_per_bin_per_cell, fmt='%i', delimiter=',', newline='\n')                     
     #print total_time_per_bin
-    print 'Total running time: %1.1f seconds'%np.sum(total_time_per_bin)
+    print 'Total running time: %1.1f seconds'%numpy.sum(total_time_per_bin)
 
     #print average_speed_per_bin
     #print 'Normalized average speeds:'
@@ -525,7 +532,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ########################calculate events per lap ##############################
     ###############################################################################
 
-    events_per_second_per_bin = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
+    events_per_second_per_bin = numpy.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float') 
     for cell in range(0,total_number_of_cells): 
         for env_bin in range(0,total_number_distance_bins_in_all_env):
             if(total_time_per_bin[env_bin] > 1.00):
@@ -560,7 +567,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ########################calculate events per lap ##############################
     ###############################################################################
 
-    gaussian_filtered_events_per_second = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
+    gaussian_filtered_events_per_second = numpy.zeros((total_number_of_cells,total_number_distance_bins_in_all_env),dtype='float')
 
     #apply a one dimensional gaussian filter to event data for each cell:
 
@@ -582,10 +589,10 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ############generate ranking for cells according to max response###############
     ###############################################################################
 
-    place_data_each_cell = np.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='float')
+    place_data_each_cell = numpy.zeros((total_number_of_cells,total_number_distance_bins_in_all_env+2*number_of_environments),dtype='float')
         
     for cell in range(0,total_number_of_cells): 
-        cell_max_response = np.max(gaussian_filtered_events_per_second[cell,:])
+        cell_max_response = numpy.max(gaussian_filtered_events_per_second[cell,:])
         for env in range(0,number_of_environments):
             env_max_response_column = 0
             env_max_response = 0.00
@@ -662,7 +669,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 
     
     for plot_env in range (0,number_of_environments):
-        data_array_all = place_data_each_cell[np.argsort(place_data_each_cell[:,plot_env*2],kind='quicksort')]
+        data_array_all = place_data_each_cell[numpy.argsort(place_data_each_cell[:,plot_env*2],kind='quicksort')]
         
         data_array = []
         for row in range(0,data_array_all.shape[0]):
@@ -670,12 +677,12 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                 if(len(data_array) == 0):
                     data_array = data_array_all[row,:]
                 else:
-                    data_array = np.vstack([data_array, data_array_all[row,:]])
+                    data_array = numpy.vstack([data_array, data_array_all[row,:]])
         
         if(len(data_array) == 0):
-            data_array = np.zeros((2,data_array_all.shape[1]))
+            data_array = numpy.zeros((2,data_array_all.shape[1]))
         elif(len(data_array) == data_array_all.shape[1]):
-            data_array = np.vstack([np.zeros((1,data_array_all.shape[1])),data_array])            
+            data_array = numpy.vstack([numpy.zeros((1,data_array_all.shape[1])),data_array])            
         
         #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array[:,0:2*number_of_environments], fmt='%f', delimiter=',', newline='\n')   
 
