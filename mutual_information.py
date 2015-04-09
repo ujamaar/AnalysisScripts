@@ -80,7 +80,7 @@ logProbY=zeros(1,nYvalues);
 logProbX0givenY=zeros(nCells, nYvalues);
 logProbX1givenY=zeros(nCells, nYvalues);
 
-for yVal=0:nYvalues-1
+for yVal in range(0,nYvalues-1):
     logProbY(yVal+1)=log(sum(Y==yVal))-log(nFrames);
     theseX=X(:,Y==yVal);
     logProbX0givenY(:,yVal+1)=log(sum(1-theseX,2)+1)-log(size(theseX,2)+2); #sum(1-theseX,2) means calculate sum of the array (1-theseX) in dimension#2,i.e. sum of each row
