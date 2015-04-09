@@ -14,7 +14,7 @@ def main():
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
     data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
-#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis'
+#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
     
     replace_previous_versions_of_output_files = False
     

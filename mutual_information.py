@@ -71,10 +71,11 @@ else:
     nYvalues=max(Y)+1;
 end
 
-#put X data into logical matrix
+# put X data into logical matrix
+# zeros remain 0 and all other values (positive or negative) become 1
 X=logical(cellEvents);
 
-% calculate empirical probability distributions
+# calculate empirical probability distributions
 logProbY=zeros(1,nYvalues);
 logProbX0givenY=zeros(nCells, nYvalues);
 logProbX1givenY=zeros(nCells, nYvalues);
@@ -82,12 +83,13 @@ logProbX1givenY=zeros(nCells, nYvalues);
 for yVal=0:nYvalues-1
     logProbY(yVal+1)=log(sum(Y==yVal))-log(nFrames);
     theseX=X(:,Y==yVal);
-    logProbX0givenY(:,yVal+1)=log(sum(1-theseX,2)+1)-log(size(theseX,2)+2);
+    logProbX0givenY(:,yVal+1)=log(sum(1-theseX,2)+1)-log(size(theseX,2)+2); #sum(1-theseX,2) means calculate sum of the array (1-theseX) in dimension#2,i.e. sum of each row
     logProbX1givenY(:, yVal+1)=log(sum(theseX,2)+1)-log(size(theseX,2)+2);
 end
 logProbX0=log(sum(1-X,2))-log(nFrames);
 logProbX1=log(sum(X,2))-log(nFrames);
 #B = repmat(A,n) returns an array containing n copies of A in the row and column dimensions. The size of B is size(A)*n when A is a matrix.
+#B = repmat(A,r1,...,rN) specifies a list of scalars, r1,..,rN, that describes how copies of A are arranged in each dimension. When A has N dimensions, the size of B is size(A).*[r1...rN]. For example, repmat([1 2; 3 4],2,3) returns a 4-by-6 matrix.
 logProbX0andY=log(exp(logProbX0givenY).*repmat(exp(logProbY),nCells,1));
 logProbX1andY=log(exp(logProbX1givenY).*repmat(exp(logProbY),nCells,1));
 
