@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt # needed for plotting graphs
+import matplotlib.ticker as ticker #to set custom axis labels
 import numpy # needed for various math tasks
-from matplotlib.ticker import MaxNLocator #y-axis labels
 from matplotlib.backends.backend_pdf import PdfPages # for saving figures as pdf
 import os # needed to arrange filenames alphabetically
 import re # needed to arrange filenames alphabetically
@@ -24,7 +24,7 @@ def main():
 #    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
 #    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_plots'
 
-    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
+    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
     output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
@@ -244,6 +244,8 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     lap_count = behavior_and_event_data[9,:]
     total_laps = max(lap_count) + 1
     print 'Number of laps = %d' %total_laps
+
+    initial_drops = behavior_and_event_data[5,:]
     
     distance = behavior_and_event_data[7,:] 
     environment = behavior_and_event_data[10,:]
@@ -374,11 +376,12 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
     ###############################################################################
     for env in range(0,number_of_environments):
 
-        max_distance_point_in_env = 0
+        lap_point_where_first_reward_was_presented = 0
         for frame in range(1,total_number_of_frames):
-            if(environment[frame] == env+1 and distance[frame] > max_distance_point_in_env):
-                max_distance_point_in_env = distance[frame]
-        env_track_lengths[env] = (max_distance_point_in_env / 2000) * 2000 #this will round down the distance value to the nearest multiple of 2000mm (hopefully giving us 2m, 4m or 8m values)
+            if(environment[frame] == env+1 and initial_drops[frame] > initial_drops[frame -1]):
+                lap_point_where_first_reward_was_presented = distance[frame]
+                break
+        env_track_lengths[env] = (lap_point_where_first_reward_was_presented / 100) * 100 #this will round down the distance value to the nearest multiple of 100mm (hopefully giving us 2m, 4m or 8m values)
 
         #expansion_factor = env_track_lengths[env] / 4000  #just in case the virtual track has been expanded
         bins_in_environment[env] = env_track_lengths[env] / distance_bin_size
@@ -680,9 +683,11 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                     data_array = numpy.vstack([data_array, data_array_all[row,:]])
         
         if(len(data_array) == 0):
-            data_array = numpy.zeros((2,data_array_all.shape[1]))
+            data_array = numpy.zeros((1,data_array_all.shape[1]))
         elif(len(data_array) == data_array_all.shape[1]):
             data_array = numpy.vstack([numpy.zeros((1,data_array_all.shape[1])),data_array])            
+        
+        number_of_cells_in_this_plot = data_array.shape[0] 
         
         #np.savetxt(file_path.replace('.csv','_plotted_data_sorted_for_env_%d.csv'%plot_env), data_array[:,0:2*number_of_environments], fmt='%f', delimiter=',', newline='\n')   
 
@@ -731,9 +736,9 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
             plt.figtext(0.84,0.25,"min speed: %dmm/s" %speed_threshold,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.2,"Sigma: %1.1f" %gaussian_filter_sigma,                    fontsize='x-small', color=plot_color[plot_env], ha ='left')
             plt.figtext(0.84,0.15,"min.activity: %1.3f" %lower_threshold_for_activity,     fontsize='x-small', color=plot_color[plot_env], ha ='left')
-            plt.figtext(0.84,0.1,"Cells in env: %d" %data_array.shape[0],                  fontsize='x-small', color=plot_color[plot_env], ha ='left')
+            plt.figtext(0.84,0.1,"Cells in env: %d" %number_of_cells_in_this_plot,         fontsize='x-small', color=plot_color[plot_env], ha ='left')
             
-            plt.figtext(0.03,0.15,"%d" %data_array.shape[0],                               fontsize='large', color = plot_color[plot_env], ha ='left')
+            plt.figtext(0.03,0.15,"%d" %number_of_cells_in_this_plot,                      fontsize='large', color = plot_color[plot_env], ha ='left')
             plt.figtext(0.02,0.10,"cells",                                                 fontsize='large', color = plot_color[plot_env], ha ='left')
 
     
@@ -750,15 +755,35 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
 #            ax.xaxis.tick_bottom() 
 #            plt.setp(ax.get_xticklabels(),visible=True)
 
-            ax.xaxis.tick_bottom()
-            x1 = float(env_track_lengths[env])
-            x2 = x1 / (8 * 1000) # there are eight points on the x-axis, other than the 0
-            x3 = [x2*0, x2*1 , x2*2 , x2*3 , x2*4 , x2*5 , x2*6 , x2*7 , x2*8 ]
+#            x1 = float(env_track_lengths[env])
+#            x2 = x1 / (8 * 1000) # there are eight points on the x-axis, other than the 0
+#            x3 = [x2*0, x2*1 , x2*2 , x2*3 , x2*4 , x2*5 , x2*6 , x2*7 , x2*8 ]
+#            x3 = numpy.around(x3, decimals=2)
+#            ax.set_xlabel('Distance(m)')
+##            ax.xaxis.set_major_locator(ticker.MaxNLocator(8))
+##            plt.setp(ax,xticklabels=x3,visible=True)
+#            xaxis_start, xaxis_end = ax.get_xlim()
+#            ax.xaxis.set_ticks(numpy.arange(xaxis_start, xaxis_end*9/8, xaxis_end/8))
+#            plt.setp(ax,xticklabels=x3,visible=True)
+
+            x1 = env_track_lengths[env] / 500 # lets say, we want a distance label on the x-axis for every 0.5m (500mm)
+            x2 = [0,0.5] # there will be at least two labels on the x-axis, lets see if there will be more
+            for x_label in range(2,x1+1):
+                x2.append(x_label*0.5)
+
+            ax.xaxis.tick_bottom()   
             ax.set_xlabel('Distance(m)')
-            plt.setp(ax,xticklabels=x3,visible=True)
-           
+            xaxis_start, xaxis_end = ax.get_xlim()
+            ax.xaxis.set_ticks(numpy.arange(xaxis_start, xaxis_end+(500/distance_bin_size), (500/distance_bin_size)))
+            plt.setp(ax,xticklabels=x2,visible=True)
+
+            ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            if(number_of_cells_in_this_plot >= 10):
+                ax.yaxis.set_major_locator(ticker.MaxNLocator(number_of_cells_in_this_plot/5))
+            ax.set_ylabel('Cell#')
+      
             plt.xlim (0,bins_in_environment[env])
-            plt.ylim (0,data_array.shape[0]) 
+            plt.ylim (0,number_of_cells_in_this_plot) 
             plt.gca().invert_yaxis()
 
                         
@@ -775,8 +800,7 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
                 
             #plt.setp(ax.get_yticklabels(), visible=True)
 
-            ax.yaxis.set_major_locator(MaxNLocator(integer=True)) 
-            ax.set_ylabel('Cell#')
+
             fig.add_subplot(ax)
      
             #can be commented out to stop showing all plots in the console
@@ -820,12 +844,17 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         plt.tick_params(axis='y', which='both', labelleft='on', labelright='on')
         plt.setp(ax1.get_yticklabels(),visible=True)
 
+
+        x1 = env_track_lengths[env] / 500 # lets say, we want a distance label on the x-axis for every 0.5m (500mm)
+        x2 = [0,0.5] # there will be at least two labels on the x-axis, lets see if there will be more
+        for x_label in range(2,x1+1):
+            x2.append(x_label*0.5)
+
         ax1.xaxis.tick_bottom()
-        x1 = float(env_track_lengths[env])
-        x2 = x1 / (8 * 1000) # there are eight points on the x-axis, other than the 0
-        x3 = [x2*0, x2*1 , x2*2 , x2*3 , x2*4 , x2*5 , x2*6 , x2*7 , x2*8 ]
         ax1.set_xlabel('Distance(m)')
-        plt.setp(ax1,xticklabels=x3,visible=True)
+        xaxis_start, xaxis_end = ax1.get_xlim()
+        ax1.xaxis.set_ticks(numpy.arange(xaxis_start, xaxis_end+(500/distance_bin_size), (500/distance_bin_size)))
+        plt.setp(ax1,xticklabels=x2,visible=True)
 
         #to label the odor sequence on the plots
         od = odor_sequence_in_letters[env*3:(env+1)*3]
