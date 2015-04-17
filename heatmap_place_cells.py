@@ -13,7 +13,7 @@ def main():
     distance_bin_size = 50 #distance bin in mm
     speed_threshold = 50 #minimum speed in mm/s for selecting events
     gaussian_filter_sigma = 2.00
-    lower_threshold_for_activity = 0.15
+    lower_threshold_for_activity = 0.10
     
     # here use these values:
     #split_laps_in_environment=1  #for no split
@@ -24,7 +24,7 @@ def main():
 #    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
 #    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_plots'
 
-    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23'
+    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
     output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
@@ -392,13 +392,13 @@ def read_data_and_generate_plots(file_path,odor_response_time_window, distance_b
         #at each encounter of new environment, we take note of every time a non-zero odor turns on/off and the distances at which this happens
         odor_count_in_this_sequence = 0
         lap_under_evaluation = 0
-        for env_frame in range(1,total_number_of_frames):
-            if(environment[env_frame] == env+1 and odor[env_frame] > odor[env_frame-1]):
+        for env_frame in range(3,total_number_of_frames):
+            if(environment[env_frame] == env+1 and odor[env_frame] > odor[env_frame-1] and odor[env_frame] > odor[env_frame-2] and odor[env_frame] > odor[env_frame-3]):
                 lap_under_evaluation = lap_count[env_frame]
                 odor_sequence[env*3 + odor_count_in_this_sequence] = odor[env_frame]
                 sum_of_odor_start_points = distance[env_frame] + odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2]
                 odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2] = sum_of_odor_start_points #this is where the odor starts, distance has been rounded to nearest 50mm
-            elif(environment[env_frame] == env+1 and odor[env_frame] < odor[env_frame-1]):
+            elif(environment[env_frame] == env+1 and odor[env_frame] < odor[env_frame-1] and odor[env_frame] < odor[env_frame-2] and odor[env_frame] < odor[env_frame-3]):
                 sum_of_odor_end_points = distance[env_frame] + odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2 + 1]
                 odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2 + 1] = sum_of_odor_end_points
                 odor_count_in_this_sequence = odor_count_in_this_sequence + 1
