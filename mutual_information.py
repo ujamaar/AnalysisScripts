@@ -240,7 +240,7 @@ def mutual_infomation_test_of_shuffled_cell_events(cell_events_file,all_mutual_i
             p_values_from_shuffle_test_lists[ref_var][cell] = float(mutual_information_larger_than_original_lists[ref_var][cell]) / float(number_of_shuffles)
         
         numpy.savetxt(all_mutual_info_reference_variable_files[ref_var].replace('.csv','_mutual_info.csv'), original_mutual_information_lists[ref_var], fmt='%1.10f', delimiter=',', newline='\n')
-        numpy.savetxt(all_mutual_info_reference_variable_files[ref_var].replace('.csv','_mutual_info_pvalues_%dshuffles.csv'%number_of_shuffles), p_values_from_shuffle_test_lists[ref_var], fmt='%1.10f', delimiter=',', newline='\n')
+        numpy.savetxt(all_mutual_info_reference_variable_files[ref_var].replace('.csv','_mutual_info_%dshuffles_pvalues.csv'%number_of_shuffles), p_values_from_shuffle_test_lists[ref_var], fmt='%1.10f', delimiter=',', newline='\n')
 
 #        for cell in range(0,total_number_of_cells):
 #            if(mutual_information_of_shuffled_events[cell] >= original_mutual_information[cell]):
