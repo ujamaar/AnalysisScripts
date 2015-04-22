@@ -6,7 +6,7 @@ def main():
 
     directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
 
-    number_of_shuffles = 200
+    number_of_shuffles = 100
 
     #detect all the .csv files in the folder
     file_names = [os.path.join(directory_path, f)
@@ -30,10 +30,112 @@ def main():
     else:
         print "Please make sure that there are an appropriate number of files in the folder"
 
+#################################################################################
+
+def mutual_infomation_test_of_shuffled_cell_events(cell_events,reference_variable,number_of_shuffles):
+
+    total_number_of_frames = cell_events.shape[0]
+    total_number_of_cells = cell_events.shape[1]    
+    print 'Number of cells: %d'%total_number_of_cells
+    print 'Number of frames: %d'%total_number_of_frames
+
+    if (len(reference_variable) != total_number_of_frames):
+        print 'Frame numbers do not match between events file and reference variable file'
+        return
+
+    #caculate P(Y) only once since it is not affected by shuffling of cell events:
+    number_of_ref_vars = max(reference_variable) + 1
+    prob_Y = numpy.zeros(number_of_ref_vars,dtype='float')
+    unique_ref_vars,frequency_of_each_reference_variable = get_unique_elements(reference_variable,return_index=False, return_inverse=False,return_counts=True)
+    for ref_var in range(0,number_of_ref_vars):
+        prob_Y[ref_var] = frequency_of_each_reference_variable[ref_var]*1.00/total_number_of_frames
+
+    #also calculate P(X0) and P(X1) only once since they are not affected by shuffling of cell events:
+    prob_X0 = numpy.zeros(total_number_of_cells,dtype='float')
+    prob_X1 = numpy.zeros(total_number_of_cells,dtype='float')    
+    sum_of_cell_events_for_all_cells = numpy.sum(cell_events,axis=0)    
+    for cell in range(0,total_number_of_cells):
+        prob_X0[cell] = (total_number_of_frames*1.00 - sum_of_cell_events_for_all_cells[cell])/total_number_of_frames
+        prob_X1[cell] = (sum_of_cell_events_for_all_cells[cell] * 1.00)/total_number_of_frames
+
+    original_mutual_information = calculate_mutual_information(cell_events, reference_variable,frequency_of_each_reference_variable,prob_Y,prob_X0,prob_X1)        
+    mutual_information_larger_than_original = numpy.zeros(total_number_of_cells,dtype='int')
+
+
+    #now shuffle cell events and calculate mutual information for each shuffle:
+    print_interval = max(5,number_of_shuffles/10)
+    for shuffle in range(0,number_of_shuffles):
+        if((shuffle+1)%print_interval==0):
+            print 'Shuffle# %d  of  %d'%(shuffle+1,number_of_shuffles)
+        #shuffled_cell_events = cell_events[numpy.random.permutation(total_number_of_frames),:]  #alternative method of shuffling cel events
+        numpy.random.shuffle(cell_events)
+        mutual_information_of_shuffled_events = calculate_mutual_information(cell_events, reference_variable,frequency_of_each_reference_variable,prob_Y,prob_X0,prob_X1) 
+        
+        for cell in range(0,total_number_of_cells):
+            if(mutual_information_of_shuffled_events[cell] >= original_mutual_information[cell]):
+                mutual_information_larger_than_original[cell] += 1
+
+    p_values_from_shuffle_test = numpy.zeros(total_number_of_cells,dtype='float')    
+    for cell in range (0,total_number_of_cells):
+        p_values_from_shuffle_test[cell] = float(mutual_information_larger_than_original[cell]) / float(number_of_shuffles)
+
+
+
+    #create an output folder for each input file
+    output_dir_path = '/Users/njoshi/Desktop/data_analysis/output_files/'
+    if output_dir_path:
+        if not os.path.isdir(output_dir_path):
+            os.makedirs(output_dir_path) 
+    numpy.savetxt(output_dir_path + '/mutual_information_per_cell.csv', original_mutual_information , fmt='%1.10f', delimiter=',', newline='\n')
+    numpy.savetxt(output_dir_path + '/pvalues_of_mutual_information_per_cell.csv', p_values_from_shuffle_test , fmt='%1.10f', delimiter=',', newline='\n')
+    numpy.savetxt(output_dir_path + '/mutual_information_larger_than_original_%d.csv'%number_of_shuffles, mutual_information_larger_than_original , fmt='%i', delimiter=',', newline='\n')
+
+
+#################################################################################
+
+
+def calculate_mutual_information (cell_events,reference_variable,ref_var_frequency,prob_Y,prob_X0,prob_X1):
+    
+    total_number_of_cells = cell_events.shape[1]  
+    number_of_ref_vars = len(prob_Y)   
+
+    prob_X0_and_Y      = numpy.zeros((total_number_of_cells,number_of_ref_vars),dtype='float')
+    prob_X1_and_Y      = numpy.zeros((total_number_of_cells,number_of_ref_vars),dtype='float')
+    mutual_information = numpy.zeros(total_number_of_cells,dtype='float')
+
+  
+    for ref_var in range(0,number_of_ref_vars):        
+        ref_var_indices = [i for i, x in enumerate(reference_variable) if x == ref_var]
+        sum_of_cell_events_with_current_ref_var = numpy.sum(numpy.take(cell_events, ref_var_indices,axis=0),axis=0)
+
+        probability_of_Y = prob_Y[ref_var]
+        frequency_of_this_ref_var = ref_var_frequency[ref_var]        
+        for cell in range(0,total_number_of_cells): 
+            prob_X0_and_Y[cell][ref_var] = (((frequency_of_this_ref_var - sum_of_cell_events_with_current_ref_var[cell])+1.00)/(frequency_of_this_ref_var+2.00)) * probability_of_Y
+            prob_X1_and_Y[cell][ref_var] = ((sum_of_cell_events_with_current_ref_var[cell]+1.00)/(frequency_of_this_ref_var+2.00)) * probability_of_Y
+
+    for cell in range(0,total_number_of_cells):
+        cell_mutual_info_X0 = 0.00
+        cell_mutual_info_X1 = 0.00
+        for ref_var in range(0,number_of_ref_vars):
+            cell_mutual_info_X0 += (prob_X0_and_Y[cell][ref_var] * (numpy.log((prob_X0_and_Y[cell][ref_var])/(prob_X0[cell] * prob_Y[ref_var]))))
+            cell_mutual_info_X1 += (prob_X1_and_Y[cell][ref_var] * (numpy.log((prob_X1_and_Y[cell][ref_var])/(prob_X1[cell] * prob_Y[ref_var]))))
+        mutual_information[cell] = cell_mutual_info_X0 + cell_mutual_info_X1
+
+    return mutual_information
+
+
+
+#################################################################################
+
+
 #to make sure that the files are processed in the proper order
 def natural_key(string_):
     """See http://www.codinghorror.com/blog/archives/001018.html"""
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
+
+
+#################################################################################
 
 
 ##this function was copied from the numpy source file as is##
@@ -83,128 +185,5 @@ def get_unique_elements(ar, return_index=False, return_inverse=False, return_cou
 #################################################################################
 
 
-def calculate_mutual_information (cell_events,reference_variable):
-
-    total_number_of_frames = cell_events.shape[0]     
-    total_number_of_cells = cell_events.shape[1]
-       
-    if (len(reference_variable) != total_number_of_frames):
-        print 'Frame numbers do not match between events file and reference variable file'
-        return
-
-    number_of_ref_vars = max(reference_variable) + 1
-
-    prob_Y = numpy.zeros(number_of_ref_vars,dtype='float')
-
-    prob_X0_and_Y = numpy.zeros((total_number_of_cells,number_of_ref_vars),dtype='float')
-    prob_X1_and_Y = numpy.zeros((total_number_of_cells,number_of_ref_vars),dtype='float')
-
-    mutual_information = numpy.zeros(total_number_of_cells,dtype='float')
-
-    unique_ref_vars,frequency_of_each_ref_var = get_unique_elements(reference_variable,return_index=False, return_inverse=False,return_counts=True)
-    
-    for ref_var in range(0,number_of_ref_vars):
-        prob_Y[ref_var] = frequency_of_each_ref_var[ref_var]*1.00/total_number_of_frames
-        
-
-
-        sum_of_cell_events_with_current_ref_var = numpy.zeros(total_number_of_cells,dtype='int')
-        for frame in range(0,total_number_of_frames):
-            if(reference_variable[frame] == ref_var):
-                sum_of_cell_events_with_current_ref_var = numpy.add(sum_of_cell_events_with_current_ref_var,cell_events[frame,:])
-
-
-#        sum_of_cell_events_with_current_ref_var = numpy.zeros(total_number_of_cells,dtype='int')
-#        for frame in range(0,total_number_of_frames):
-#            if(reference_variable[frame] == ref_var):
-#                sum_of_cell_events_with_current_ref_var = numpy.add(sum_of_cell_events_with_current_ref_var,cell_events[frame,:])
-
-
-        probability_of_Y = prob_Y[ref_var]
-        frequency_of_this_ref_var = frequency_of_each_ref_var[ref_var]
-        for cell in range(0,total_number_of_cells):
-
-            sum_of_events_for_this_ref_var = sum_of_cell_events_with_current_ref_var[cell]
-            
-            prob_X0_and_Y[cell][ref_var] = (((frequency_of_this_ref_var - sum_of_events_for_this_ref_var)+1.00)/(frequency_of_this_ref_var+2.00)) * probability_of_Y
-            prob_X1_and_Y[cell][ref_var] = ((sum_of_events_for_this_ref_var+1.00)/(frequency_of_this_ref_var+2.00)) * probability_of_Y
-            
-
-    for cell in range(0,total_number_of_cells):
-
-        sum_of_all_events_for_this_cell = numpy.sum(cell_events[:,cell])
-        prob_X0_this_cell = (total_number_of_frames*1.00 - sum_of_all_events_for_this_cell)/total_number_of_frames
-        prob_X1_this_cell = (sum_of_all_events_for_this_cell * 1.00)/total_number_of_frames
-
-        cell_mutual_info_X0 = 0.00
-        cell_mutual_info_X1 = 0.00
-        for ref_var in range(0,number_of_ref_vars):
-            cell_mutual_info_X0 += (prob_X0_and_Y[cell][ref_var] * (numpy.log((prob_X0_and_Y[cell][ref_var])/(prob_X0_this_cell * prob_Y[ref_var]))))
-            cell_mutual_info_X1 += (prob_X1_and_Y[cell][ref_var] * (numpy.log((prob_X1_and_Y[cell][ref_var])/(prob_X1_this_cell * prob_Y[ref_var]))))
-        mutual_information[cell] = cell_mutual_info_X0 + cell_mutual_info_X1
-                
-
-    return mutual_information
-
-
-
-#################################################################################
-
-def mutual_infomation_test_of_shuffled_cell_events(cell_events,reference_variable,number_of_shuffles):
-
-#    cell_events = cell_events.transpose()
-    total_number_of_cells = cell_events.shape[1]    
-    total_number_of_frames = cell_events.shape[0]
-    print 'Number of cells: %d'%total_number_of_cells
-    print 'Number of frames: %d'%total_number_of_frames
-
-    original_mutual_information = calculate_mutual_information(cell_events, reference_variable)    
-    
-    mutual_information_larger_than_original = numpy.zeros(total_number_of_cells,dtype='int')
-    
-    for shuffle in range(0,number_of_shuffles):
-        if((shuffle+1)%10==0):
-            print 'Shuffle# %d'%(shuffle+1)
-
-        shuffled_cell_events = cell_events[numpy.random.permutation(total_number_of_frames),:]
-
-
-#        shuffled_cell_events = numpy.random.permutation(cell_events)      
-
-#        shuffled_cell_events = numpy.zeros((total_number_of_cells,cell_events.shape[1]),dtype='int')
-#        for cell in range(0,total_number_of_cells):
-#            shuffled_cell_events[cell,:] = numpy.random.permutation(cell_events[cell,:])
-
-
-#        mutual_information_of_shuffled_events = calculate_mutual_information(cell_events, reference_variable)
-        mutual_information_of_shuffled_events = calculate_mutual_information(shuffled_cell_events, reference_variable)
-        
-        for cell in range(0,total_number_of_cells):
-            if(mutual_information_of_shuffled_events[cell] >= original_mutual_information[cell]):
-                mutual_information_larger_than_original[cell] += 1
-
-    p_values_shuffle_test = numpy.zeros(total_number_of_cells,dtype='float')
-    
-    for cell in range (0,total_number_of_cells):
-        p_values_shuffle_test[cell] = float(mutual_information_larger_than_original[cell]) / float(number_of_shuffles)
-
-
-    #create an output folder for each input file
-    output_dir_path = '/Users/njoshi/Desktop/data_analysis/output_files/'
-    if output_dir_path:
-        if not os.path.isdir(output_dir_path):
-            os.makedirs(output_dir_path) 
-    numpy.savetxt(output_dir_path + '/mutual_information_per_cell.csv', original_mutual_information , fmt='%1.10f', delimiter=',', newline='\n')
-    numpy.savetxt(output_dir_path + '/pvalues_of_mutual_information_per_cell.csv', p_values_shuffle_test , fmt='%1.10f', delimiter=',', newline='\n')
-    numpy.savetxt(output_dir_path + '/mutual_information_larger_than_original_%d.csv'%number_of_shuffles, mutual_information_larger_than_original , fmt='%i', delimiter=',', newline='\n')
-
-#################################################################################
 #################################################################################
 main()
-
-
-
-
-
-
-

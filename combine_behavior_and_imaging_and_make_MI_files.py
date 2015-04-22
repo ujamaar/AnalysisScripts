@@ -13,8 +13,8 @@ def main():
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
-    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
-#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+#    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22/wfnjC22_2015_04_01'
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
     
     replace_previous_versions_of_output_files = False
     
@@ -58,8 +58,16 @@ def main():
         mouse_ID_and_date = behavior_file[mouse_ID_first_letter:(mouse_ID_first_letter+18)]
         print 'Mouse ID is: %s'%mouse_ID_and_date
 
+        imaging_files_directory_path = ''
+        print file_length
+        for name_letter in range (1,file_length):
+            if(behavior_file[file_length - name_letter] == '/'):
+                imaging_files_directory_path = behavior_file[0:(file_length - name_letter)]
+                break
 
-        imaging_files_directory_path = data_files_directory_path + '/' + mouse_ID_and_date
+        print 'Checking this location for other imaging files:  ' + imaging_files_directory_path
+        
+#        imaging_files_directory_path = data_files_directory_path + '/' + mouse_ID_and_date
         events_file           = imaging_files_directory_path + '/' + 'events.csv'
         valid_cells_file      = imaging_files_directory_path + '/' + 'valid_cells.csv' 
         dropped_frames_file   = imaging_files_directory_path + '/' + 'dropped_frames.csv'
@@ -387,13 +395,12 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
         separated_odor_with_threshold = numpy.zeros(len(odor_with_threshold),dtype='int')
         for this_frame in range(0,len(odor_with_threshold)):
             if(odor_with_threshold[this_frame] == this_odor):
-                separated_odor_with_threshold[this_frame] = 1 #behavior[this_frame][2]
-#        numpy.savetxt(raw_behavior_file[0:-16] + '_only_odor_%d.csv'%this_odor, separated_odor_with_threshold , fmt='%i', delimiter=',', newline='\n')  
-        numpy.savetxt(output_file_name + '_odor_%d.csv'%this_odor, separated_odor_with_threshold , fmt='%i', delimiter=',', newline='\n')  
+                separated_odor_with_threshold[this_frame] = 1 #behavior[this_frame][2] 
+        numpy.savetxt(output_file_name + '_mi_odor%d_ref_var.csv'%this_odor, separated_odor_with_threshold , fmt='%i', delimiter=',', newline='\n')  
 
-    numpy.savetxt(output_file_name + '_cell_events_per_frame.csv', events_by_frame_with_threshold , fmt='%i', delimiter=',', newline='\n')
-    numpy.savetxt(output_file_name + '_binned_distance.csv', binned_distance_with_threshold , fmt='%i', delimiter=',', newline='\n')     
-#    numpy.savetxt(raw_behavior_file[0:-16] + '_odor_per_frame_with_threshold.csv', odor_with_threshold , fmt='%i', delimiter=',', newline='\n') 
+    numpy.savetxt(output_file_name + '_mi_cell_events.csv', events_by_frame_with_threshold , fmt='%i', delimiter=',', newline='\n')
+    numpy.savetxt(output_file_name + '_mi_distance_ref_var.csv', binned_distance_with_threshold , fmt='%i', delimiter=',', newline='\n')      
+    numpy.savetxt(output_file_name + '_mi_trial_type_ref_var.csv', behavior[:,10] , fmt='%i', delimiter=',', newline='\n') 
 ###############################################################################
 
 main()
