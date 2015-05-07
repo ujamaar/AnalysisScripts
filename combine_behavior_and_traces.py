@@ -13,8 +13,8 @@ def main():
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
-    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC8/wfnjC08_2014_11_18'
-#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+#    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC8/wfnjC08_2014_11_18'
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
     
     replace_previous_versions_of_output_files = True
     
@@ -28,7 +28,7 @@ def main():
                 else:                  
                     behavior_file_has_already_been_analyzed = False
                     for combined_file in files:
-                        if combined_file.endswith('combined_behavior_and_events.csv'):
+                        if combined_file.endswith('combined_behavior_and_traces.csv'):
                             behavior_file_has_already_been_analyzed = True
                             print 'This behavior file has already been combined: ' + behavior_file
                             print 'I found this combined behavior and events file: ' + combined_file
@@ -68,7 +68,7 @@ def main():
         print 'Checking this location for other imaging files:  ' + imaging_files_directory_path
         
 #        imaging_files_directory_path = data_files_directory_path + '/' + mouse_ID_and_date
-        events_file           = imaging_files_directory_path + '/' + 'events.csv'
+        traces_file           = imaging_files_directory_path + '/' + 'traces.csv'
         valid_cells_file      = imaging_files_directory_path + '/' + 'valid_cells.csv' 
         dropped_frames_file   = imaging_files_directory_path + '/' + 'dropped_frames.csv'
         output_file_name      = imaging_files_directory_path + '/' + mouse_ID_and_date
@@ -80,8 +80,8 @@ def main():
 #                os.makedirs(output_directory_path) 
 
         # This if statement is to make sure that the relevant files are actually there in the folder
-        if os.path.isfile(events_file):        
-            print 'The matching events file is: '+ events_file
+        if os.path.isfile(traces_file):        
+            print 'The matching traces file is: '+ traces_file
             if os.path.isfile(valid_cells_file):
                 print 'The matching valid_cells file is: '+ valid_cells_file
                 #if there is a file for dropped frames, print a notification
@@ -90,7 +90,7 @@ def main():
                 else: #if there is no file for dropped frames in the imaging folder
                     print 'There were no dropped frames in this recording.'            
                     dropped_frames_file = 0       
-                extract_details_per_frame(events_file,valid_cells_file,behavior_file,dropped_frames_file,frame_ID_adjustment_factor,output_file_name)
+                extract_details_per_frame(traces_file,valid_cells_file,behavior_file,dropped_frames_file,frame_ID_adjustment_factor,output_file_name)
         else:
             print ('This behavior file either does not have imaging data, or the imaging files are not named properly. ' +
                    'The script expects to find files with names events.csv, valid_cells.csv, and dropped_frames.csv (if there are dropped frames)')
@@ -108,7 +108,7 @@ def natural_key(string_):
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
 
-def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file, dropped_frames_file,frame_ID_adjustment_factor,output_file_name):
+def extract_details_per_frame (traces_file, valid_cells_file, raw_behavior_file, dropped_frames_file,frame_ID_adjustment_factor,output_file_name):
 
     #read the behavior.csv file and load it into a matrix called raw_behavior    
     raw_behavior = numpy.loadtxt(raw_behavior_file, dtype='int', comments='#', delimiter=',',skiprows=2)
@@ -117,55 +117,6 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     ############################## code for calculating speed ###################################
     #############################################################################################
     
-#    #calculate speed per 50mm stretch of the track########################################
-#    s1 = 0.00
-#    s2 = 0.00
-#    t1 = 0.00
-#    t2 = 0.00
-#    last_line_fill = 0
-#    speed = numpy.zeros(len(raw_behavior),dtype='float')
-#
-#    
-#    current_speed = 0.00
-#    #current_lick_rate = 0.0    
-#    
-#    for line in range(0,len(raw_behavior)):
-#        #read current distance and time
-#        s2 = raw_behavior[line][7]
-#        #sanity_check = raw_behavior[line-1][6]
-#        #if there is no change in time, the speed remains unchanged
-#        #speed is calculated for every 500 ms window in this case
-#        if (s2 >= ((int(s1/50.00) + 1)*50.00)):# and (abs(s2-sanity_check) < 20.00)):
-#            t2 = raw_behavior[line-1][1]
-#            s2 = raw_behavior[line-1][7]
-#            current_speed = ((s2 - s1)*1000.00)/(t2 - t1) #speed is in mm/s
-#
-#            t1 = raw_behavior[line][1]
-#            s1 = raw_behavior[line][7]
-#            
-#            for blank_line in range(last_line_fill,line):
-#                speed[blank_line] = current_speed
-#            last_line_fill = line
-#        #at the end of reward region, when the distance measurement resets to zero
-#        elif(s2 < s1 and s1-s2 > 50.00):
-#            t2 = raw_behavior[line-1][1]
-#            s2 = raw_behavior[line-1][7]          
-#            current_speed = ((s2 - s1)*1000.00)/(t2 - t1) #speed is in mm/s
-#            for blank_line in range(last_line_fill,line):
-#                speed[blank_line] = current_speed
-#            last_line_fill = line            
-#            t1 = raw_behavior[line][1]
-#            s1 = raw_behavior[line][7]
-#        #at the end of the recording
-#        elif(line == len(raw_behavior)-1):
-#            t2 = raw_behavior[line][1]
-#            s2 = raw_behavior[line][7]          
-#            current_speed = ((s2 - s1)*1000.00)/(t2 - t1) #speed is in mm/s
-#            for blank_line in range(last_line_fill,line+1):
-#                speed[blank_line] = current_speed
-#            last_line_fill = line            
-
-
     #calculate speed per 500ms of the recording time########################################
     s1 = 0.00
     s2 = 0.00
@@ -232,19 +183,15 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
     #############################################################################################
 
 
-
-
     #############################################################################################    
     ##################### now combine and save the data in a csv file ###########################
     #############################################################################################
 
     #use and save only the relevant columns from the raw behavior file
-    total_number_of_frames = max(raw_behavior[:,0])
-    print 'Total number of frames is: %d'%total_number_of_frames
-    behavior = numpy.empty((total_number_of_frames,12),dtype='int')
-    binned_distance = numpy.zeros(total_number_of_frames,dtype='int')
-    frame_count = 0
-    
+    number_of_frames = max(raw_behavior[:,0])
+    behavior = numpy.empty((number_of_frames,12),dtype='int')
+
+    frame_count = 0    
     for row in range(0, len(raw_behavior)):
         #save data only if there's a new frame in the current data reading
         if(raw_behavior[row][0] > frame_count):
@@ -261,69 +208,70 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
             behavior[frame_count][10] = raw_behavior[row][10]  #environment
             behavior[frame_count][11] = speed[row]             #speed
 
-            binned_distance[frame_count] = raw_behavior[row][7] / 100
-            if(binned_distance[frame_count] < 0): #to simplify calculations, change negative values of binned distance to zero
-                binned_distance[frame_count] = 0
-
             frame_count = raw_behavior[row][0] 
 
-    
     print "Behavior array size is: "
     print behavior.shape
-    number_of_frames = behavior.shape[0]
     print 'Total number of frames recorded by arduino: %d'%number_of_frames
 
-    
+###############################################################################
+#apply downsampling to the behavior data
+    behavior_frames_downsampled = number_of_frames/frame_ID_adjustment_factor
+    behavior_downsampled = numpy.empty((behavior_frames_downsampled,12),dtype='int')
+
+    for frame in xrange(behavior_frames_downsampled):
+        behavior_downsampled[frame,:] = behavior[frame*frame_ID_adjustment_factor,:]
+
+
+
+
 ###############################################################################
 
 
     valid_cells = numpy.loadtxt(valid_cells_file, dtype='int', comments='#', delimiter=',')
-    print "Number of putative cells (valid and invalid): %d"%valid_cells.size
+    number_of_all_cells = len(valid_cells)
+    print "Number of putative cells (valid and invalid): %d"%number_of_all_cells
+    
+    number_of_valid_cells = 0
+    for putative_cell in xrange(number_of_all_cells):
+        if(valid_cells[putative_cell] >= 1):
+            number_of_valid_cells += 1
+    print "Number of valid cells in this recording: %d"%number_of_valid_cells    
  
 ###############################################################################
 
-    
-    #Source: http://stackoverflow.com/questions/4974290/reading-non-uniform-data-from-file-into-array-with-numpy
-    f = open(events_file, "r")
-    events = []
-    line = f.readline()
-    index = 0
-    while line:
-        line = line.strip("\n")
-        line = line.split()
-        events.append([])
-        for item in line:
-            events[index].append(int(item))
-        line = f.readline()
-        index += 1
-    f.close()
-    print 'Length of events file is: %d'%len(events) 
-###############################################################################
+
+    traces_raw_matrix = numpy.loadtxt(traces_file, dtype='float', comments='#', delimiter=',')
+    number_of_frames_after_downsampling = traces_raw_matrix.shape[1]
+    print 'number of cells:%d'%traces_raw_matrix.shape[0]
+    print 'number of frames after downsampling:%d'%number_of_frames_after_downsampling   
 
 
-    #create a matrix with only valid cells
-    valid_cell_events = []
-    print len(events)
-    for cell in range(0,len(events)):
-        if(valid_cells[cell] >= 1):
-            valid_cell_events.append(events[cell])
+    traces_by_frame_for_valid_cells = numpy.empty((number_of_valid_cells,number_of_frames_after_downsampling),dtype='float')    
 
-    number_of_valid_cells = len(valid_cell_events)
-    print "Number of valid cells in this recording: %d"%number_of_valid_cells
-       
-    events_by_frame = numpy.empty((number_of_frames,number_of_valid_cells),dtype='int')   
-    max_frame_with_event = 0
-    for this_cell in range(0,number_of_valid_cells):
-        frames_in_this_cell = len(valid_cell_events[this_cell])
-        for this_frame in range(0,frames_in_this_cell):
-            event_frame_index = (valid_cell_events[this_cell][this_frame] -1)*frame_ID_adjustment_factor #multiply by the adjustment factor because imaging data has been down sampled (e.g. 10 frames/sec down sampled to 5)
-            if(event_frame_index < number_of_frames):
-                events_by_frame[event_frame_index][this_cell] = 1
-            else:
-                print 'Imaging file has more frames than the behavior file. This extra frame will be ignored: %d'%event_frame_index
-            if(event_frame_index > max_frame_with_event):
-                max_frame_with_event = event_frame_index
-    print 'The last event was registered at frame# %d'%max_frame_with_event
+    cell_index = 0
+    for putative_cell in xrange(number_of_all_cells):
+        if(valid_cells[putative_cell] >= 1):
+            for frame in xrange(number_of_frames_after_downsampling):
+                traces_by_frame_for_valid_cells[cell_index,:] = traces_raw_matrix[putative_cell,:]                
+            cell_index += 1
+
+
+
+
+#    traces_by_frame_for_valid_cells = numpy.empty((number_of_valid_cells,number_of_frames),dtype='float')    
+#
+#    cell_index = 0
+#    for putative_cell in xrange(number_of_all_cells):
+#        if(valid_cells[putative_cell] >= 1):
+#            for frame in xrange(number_of_frames_after_downsampling):
+#                if(frame*frame_ID_adjustment_factor < number_of_frames):
+#                    traces_by_frame_for_valid_cells[cell_index][frame*frame_ID_adjustment_factor] = traces_raw_matrix[putative_cell][frame]
+#            if(cell_index < number_of_valid_cells):
+#                cell_index += 1
+
+
+
 ###############################################################################    
 
     # run this only if there are missing frames
@@ -336,78 +284,69 @@ def extract_details_per_frame (events_file, valid_cells_file, raw_behavior_file,
         print "Number of dropped frames: %d"%dropped_frames.size
 ###############################################################################
 
+
+
     print 'Now we will save all this information in one csv file:'
-    events_adjusted_for_missing_frames = numpy.empty((number_of_frames,behavior.shape[1] + number_of_valid_cells),dtype='int')
+    traces_adjusted_for_missing_frames = numpy.empty((number_of_frames_after_downsampling,behavior_downsampled.shape[1] + number_of_valid_cells),dtype='float')
 
     adjust_for_missing_frames = 0
     
-    for frame in range(0,number_of_frames):
-        if(frame+1 in dropped_frames):
+    for frame in xrange(number_of_frames_after_downsampling):
+        if(((frame+1)*frame_ID_adjustment_factor) in dropped_frames):
             adjust_for_missing_frames = adjust_for_missing_frames + 1
-            for cell in range(0,events_adjusted_for_missing_frames.shape[1]):
-                if (cell < behavior.shape[1]):
-                    events_adjusted_for_missing_frames[frame][cell] = behavior[frame][cell]
+            for cell in xrange(traces_adjusted_for_missing_frames.shape[1]):
+                if (cell < behavior_downsampled.shape[1]):
+                    traces_adjusted_for_missing_frames[frame][cell] = behavior_downsampled[frame][cell]
                 else:
-                    events_adjusted_for_missing_frames[frame][cell] = 0 # use numpy.nan to be more exact, b/c the frame is missing
+                    traces_adjusted_for_missing_frames[frame][cell] = 0 # use numpy.nan to be more exact, b/c the frame is missing
         #business is as usual if frames are not missing:
         else:
-            for cell in range(0,events_adjusted_for_missing_frames.shape[1]):
-                if (cell < behavior.shape[1]):
-                    events_adjusted_for_missing_frames[frame][cell] = behavior[frame][cell]
+            for cell in range(0,traces_adjusted_for_missing_frames.shape[1]):
+                if (cell < behavior_downsampled.shape[1]):
+                    traces_adjusted_for_missing_frames[frame][cell] = behavior_downsampled[frame][cell]
                 else:
-                    events_adjusted_for_missing_frames[frame][cell] = events_by_frame[frame - adjust_for_missing_frames][cell-behavior.shape[1]]           
+                    traces_adjusted_for_missing_frames[frame][cell] = traces_by_frame_for_valid_cells[cell-behavior_downsampled.shape[1]][frame - adjust_for_missing_frames]   
     
     print 'The saved array size is:'
-    print events_adjusted_for_missing_frames.shape
+    print traces_adjusted_for_missing_frames.shape
     #now save the array as a csv file in the same location as the input files
-    save_file_name = output_file_name + '_combined_behavior_and_events.csv'
+    save_file_name = output_file_name + '_combined_behavior_and_traces.csv'
     print save_file_name
-    numpy.savetxt(save_file_name, events_adjusted_for_missing_frames, fmt='%i', delimiter=',', newline='\n') 
+    numpy.savetxt(save_file_name, traces_adjusted_for_missing_frames, fmt='%1.5f', delimiter=',', newline='\n') 
 ###############################################################################
 
-## we are saving the following files for mutual information analysis using Matlab code provided by Lacey from the Schnitzer Lab:
-#    numpy.savetxt(raw_behavior_file[0:-16] + '_cell_events_per_frame.csv', events_by_frame , fmt='%i', delimiter=',', newline='\n') 
-    print 'Now saving files for calculating mutual information.'
-    frames_above_threshold = numpy.zeros(total_number_of_frames,dtype='int')   
-    for this_frame in range(0,total_number_of_frames):
-        if(behavior[this_frame][6] == 0 and behavior[this_frame][11] >= 50): #pick out only the frames before reward window starts(reward window status == 0) and when speed is above threshold (50mm/sec)
-            frames_above_threshold[this_frame] = 1
-
-    number_of_frames_above_threshold = numpy.sum(frames_above_threshold)
-    print 'Number of frames that meet the speed and distance threshold: %d' %number_of_frames_above_threshold
-
-    events_by_frame_with_threshold = numpy.zeros((number_of_frames_above_threshold,number_of_valid_cells),dtype='int')
-    binned_distance_with_threshold = numpy.zeros(number_of_frames_above_threshold,dtype='int')
-    odor_with_threshold = numpy.zeros(number_of_frames_above_threshold,dtype='int')
-    trial_type_with_threshold = numpy.zeros(number_of_frames_above_threshold,dtype='int')
-
-    thresholded_frame_index = 0
-    for this_frame in range(0,total_number_of_frames):
-        if(frames_above_threshold[this_frame] == 1):
-            events_by_frame_with_threshold[thresholded_frame_index,:] = events_by_frame[this_frame,:]
-            binned_distance_with_threshold[thresholded_frame_index] = binned_distance[this_frame]
-            odor_with_threshold[thresholded_frame_index] = behavior[this_frame][2]
-            trial_type_with_threshold[thresholded_frame_index] = behavior[this_frame][10] -1
-            thresholded_frame_index = thresholded_frame_index + 1
 
 
-    odors_in_this_recording = []
-    for this_frame in range(0,total_number_of_frames):
-        if(behavior[this_frame][2] > 0 and behavior[this_frame][2] not in odors_in_this_recording):
-            odors_in_this_recording.append(behavior[this_frame][2])            
-    print 'These odors were presented in this recording:'
-    print odors_in_this_recording
-    
-    for this_odor in odors_in_this_recording:
-        separated_odor_with_threshold = numpy.zeros(len(odor_with_threshold),dtype='int')
-        for this_frame in range(0,len(odor_with_threshold)):
-            if(odor_with_threshold[this_frame] == this_odor):
-                separated_odor_with_threshold[this_frame] = 1 #behavior[this_frame][2] 
-        numpy.savetxt(output_file_name + '_mi_odor%d_ref_var.csv'%this_odor, separated_odor_with_threshold , fmt='%i', delimiter=',', newline='\n')  
 
-    numpy.savetxt(output_file_name + '_mi_cell_events.csv', events_by_frame_with_threshold , fmt='%i', delimiter=',', newline='\n')
-    numpy.savetxt(output_file_name + '_mi_distance_ref_var.csv', binned_distance_with_threshold , fmt='%i', delimiter=',', newline='\n')      
-    numpy.savetxt(output_file_name + '_mi_trial_type_ref_var.csv', trial_type_with_threshold , fmt='%i', delimiter=',', newline='\n') 
+
+#    print 'Now we will save all this information in one csv file:'
+#    traces_adjusted_for_missing_frames = numpy.empty((number_of_frames,behavior.shape[1] + number_of_valid_cells),dtype='float')
+#
+#    adjust_for_missing_frames = 0
+#    
+#    for frame in xrange(number_of_frames):
+#        if(frame+1 in dropped_frames):
+#            adjust_for_missing_frames = adjust_for_missing_frames + 1
+#            for cell in xrange(traces_adjusted_for_missing_frames.shape[1]):
+#                if (cell < behavior.shape[1]):
+#                    traces_adjusted_for_missing_frames[frame][cell] = behavior[frame][cell]
+#                else:
+#                    traces_adjusted_for_missing_frames[frame][cell] = 0 # use numpy.nan to be more exact, b/c the frame is missing
+#        #business is as usual if frames are not missing:
+#        else:
+#            for cell in range(0,traces_adjusted_for_missing_frames.shape[1]):
+#                if (cell < behavior.shape[1]):
+#                    traces_adjusted_for_missing_frames[frame][cell] = behavior[frame][cell]
+#                else:
+#                    traces_adjusted_for_missing_frames[frame][cell] = traces_by_frame_for_valid_cells[cell-behavior.shape[1]][frame - adjust_for_missing_frames]   
+#    
+#    print 'The saved array size is:'
+#    print traces_adjusted_for_missing_frames.shape
+#    #now save the array as a csv file in the same location as the input files
+#    save_file_name = output_file_name + '_combined_behavior_and_traces.csv'
+#    print save_file_name
+#    numpy.savetxt(save_file_name, traces_adjusted_for_missing_frames, fmt='%1.5f', delimiter=',', newline='\n') 
+################################################################################
 ###############################################################################
 
 main()
