@@ -11,7 +11,7 @@ from matplotlib.artist import allow_rasterization
 def main():
     # specify the various parameters as needed:
     frames_pre_odor_onset = 50 #time in milliseconds
-    frames_post_odor_onset = 100 #time in milliseconds
+    frames_post_odor_onset = 50 #time in milliseconds
 
     data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
     output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
@@ -38,9 +38,9 @@ def main():
                             mouse_ID = behavior_file[0:i]
                             mouse_ID_and_date = behavior_file[0:i+11]
                             break
-                    for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path + '/' + mouse_ID + '/' + mouse_ID_and_date):                    
+                    for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path + '/' + mouse_ID + '/odor_trace_plots'):                    
                         for plot_file in plot_files:
-                            if plot_file.endswith('.pdf'):  
+                            if plot_file.endswith(mouse_ID_and_date + '_odor_trace_plots.pdf'):  
                                 behavior_file_has_already_been_analyzed = True
                                 print '----------------------------------------------------------------'
                                 print 'This behavior file has already been plotted: ' + behavior_file
@@ -170,15 +170,15 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
         #at each encounter of new environment, we take note of every time a non-zero odor turns on/off and the distances at which this happens
         odor_count_in_this_sequence = 0
         lap_under_evaluation = 0
-        for env_frame in range(1,total_number_of_frames):
-            if(environment[env_frame] == env+1 and odor[env_frame] > odor[env_frame-1]):
+        for env_frame in range(2,total_number_of_frames):
+            if(environment[env_frame] == env+1 and odor[env_frame] > odor[env_frame-1] and odor[env_frame] > odor[env_frame-2]):
                 lap_under_evaluation = lap_count[env_frame]
                 odor_sequence[env*3 + odor_count_in_this_sequence] = odor[env_frame]
                 sum_of_odor_start_points = distance[env_frame] + odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2]
                 odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2] = sum_of_odor_start_points #this is where the odor starts, distance has been rounded to nearest 50mm
                 all_laps_odor_start_frames[lap_count[env_frame]*3 + odor_count_in_this_sequence] = env_frame
                 adjusted_odor_label[lap_count[env_frame]*3 + odor_count_in_this_sequence] = env*3 + odor_count_in_this_sequence + 1
-            elif(environment[env_frame] == env+1 and odor[env_frame] < odor[env_frame-1]):
+            elif(environment[env_frame] == env+1 and odor[env_frame] < odor[env_frame-1] and odor[env_frame] < odor[env_frame-2]):
                 sum_of_odor_end_points = distance[env_frame] + odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2 + 1]
                 odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2 + 1] = sum_of_odor_end_points
                 odor_count_in_this_sequence = odor_count_in_this_sequence + 1
@@ -257,12 +257,12 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
         print 'Mouse ID is: %s'%mouse_ID_and_date
     
         #create an output folder, if it is not already there 
-        pdf_output_directory_path = output_directory_path + '/' + mouse_ID  + '/' + 'trace_plots'
+        pdf_output_directory_path = output_directory_path + '/' + mouse_ID  + '/odor_trace_plots'
         if pdf_output_directory_path:
             if not os.path.isdir(pdf_output_directory_path):
                 os.makedirs(pdf_output_directory_path)
     
-        pdf_filename = pdf_output_directory_path + '/' + mouse_ID_and_date + '_trace_plots_%d_frames.pdf'%number_of_frames_in_trace_plot
+        pdf_filename = pdf_output_directory_path + '/' + mouse_ID_and_date + '_odor_trace_plots.pdf'
         pp = PdfPages(pdf_filename) 
     
         ###############################################################################
@@ -273,7 +273,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
 #        figs = []
         #now for each cell, generate matrices of traces for each odor to be plotted, then plot these matrices in a single figure
         #total_number_of_cells
-        for cell in xrange(2):
+        for cell in xrange(total_number_of_cells):
             print 'Plotting cell# %  d of %d'%(cell,total_number_of_cells)  
             trace_matrices = [list(numpy.zeros((laps_with_this_adjusted_odor[odor],number_of_frames_in_trace_plot),dtype='float')) for odor in xrange(len(adjusted_odors))]
     
@@ -325,9 +325,11 @@ def graph_this_cell(mouse_ID_and_date,cell_index,trace_matrices,adjusted_odors,o
 #    fig.set_rasterized(True)
     fig.suptitle('%s   Cell#%d odor trace plots for all trials' %(mouse_ID_and_date,cell_index))
     plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
-    plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments,fontsize='xx-small', color='blue', ha ='left')
-    plt.figtext(0.01,0.96,"laps    :%s" %sequence_of_lap_counts  ,fontsize='xx-small', color='blue', ha ='left')
-    plt.figtext(0.01,0.94,"len(m):%s" %sequence_of_track_lengths,fontsize='xx-small', color='blue', ha ='left')
+    plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments,fontsize='xx-small', color='red', ha ='left')
+    plt.figtext(0.01,0.96,"laps    :%s" %sequence_of_lap_counts ,fontsize='xx-small', color='red', ha ='left')
+    plt.figtext(0.01,0.94,"len(m):%s" %sequence_of_track_lengths,fontsize='xx-small', color='red', ha ='left')
+
+    plt.figtext((frames_pre_odor_onset*1.00/number_of_frames_in_trace_plot),0.905,"Odor",fontsize='xx-small', color='blue', ha ='left')
     
     for ax in xrange(len(axs)):
 
@@ -347,7 +349,7 @@ def graph_this_cell(mouse_ID_and_date,cell_index,trace_matrices,adjusted_odors,o
         this_env = (adjusted_odors[ax]-1)/3
         this_odor = odor_sequence_in_letters[adjusted_odors[ax]-1]
         this_odor_index = (adjusted_odors[ax]-1)%3+1
-        axs[ax].set_ylabel('env%d -  %s%d'%(this_env,this_odor,this_odor_index),rotation='horizontal',horizontalalignment='right',color='red',fontsize='x-small')
+        axs[ax].set_ylabel('env%d -  %s%d'%(this_env+1,this_odor,this_odor_index),rotation='horizontal',horizontalalignment='right',color='red',fontsize='x-small')
         
         axs[ax].tick_params(axis='y', which='major', labelsize=4) #for small yaxis labels
 
