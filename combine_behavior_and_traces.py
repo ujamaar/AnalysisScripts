@@ -13,10 +13,10 @@ def main():
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
-#    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC8/wfnjC08_2014_11_18'
-    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjLEC3'
+#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
     
-    replace_previous_versions_of_output_files = True
+    replace_previous_versions_of_output_files = False
     
     #detect all the behavior.csv files in the folder
     file_names = []
@@ -31,8 +31,7 @@ def main():
                         if combined_file.endswith('combined_behavior_and_traces.csv'):
                             behavior_file_has_already_been_analyzed = True
                             print 'This behavior file has already been combined: ' + behavior_file
-                            print 'I found this combined behavior and events file: ' + combined_file
-                            print 'Delete the combined file to re-run this behavior file.'
+                            print 'Delete this combined behavior and traces file:' + combined_file
                     
                     if(behavior_file_has_already_been_analyzed == False):      
                         file_names.append(os.path.join(dirpath, behavior_file))
@@ -42,48 +41,30 @@ def main():
     print file_names
     
     # now look for imaging data for each behavior file and combine all the data into one output file    
-    for behavior_file in file_names:
-        print '----------------------------------------------------------------'
-        print '----------------------------------------------------------------'
-        print 'Analysing this behavior file: '+ behavior_file
-        
-        # now load the events, valid_cells and missing_frames files for the given behavior file
-        # first extract the mouse ID and date from behavior file, to find the right imaging files
-        mouse_ID_first_letter = 0
-        file_length = len(behavior_file)
-        for name_letter in range (1,file_length):
-            if(behavior_file[file_length - name_letter] == 'w' or behavior_file[file_length - name_letter] == 'W'):
-                mouse_ID_first_letter = file_length - name_letter
+    for behavior_file in file_names:  
+        # load the events, valid_cells and missing_frames files for the given behavior file
+        # first extract the mouse ID and date from behavior file, in order to find the right imaging files
+        imaging_files_directory_path,behavior_filename = os.path.split(behavior_file)
+        for i in xrange(len(behavior_filename)):
+            if(behavior_filename[i] == '_'):
+                mouse_ID_and_date = behavior_filename[0:i+11]
                 break
-        mouse_ID_and_date = behavior_file[mouse_ID_first_letter:(mouse_ID_first_letter+18)]
+        print '----------------------------------------------------------------'
+        print '----------------------------------------------------------------'
         print 'Mouse ID is: %s'%mouse_ID_and_date
-
-        imaging_files_directory_path = ''
-        #print file_length
-        for name_letter in range (1,file_length):
-            if(behavior_file[file_length - name_letter] == '/'):
-                imaging_files_directory_path = behavior_file[0:(file_length - name_letter)]
-                break
-
-        print 'Checking this location for other imaging files:  ' + imaging_files_directory_path
+        print 'Analysing this behavior file: '+ behavior_file
+        print 'Imaging files are located at: ' + imaging_files_directory_path
         
-#        imaging_files_directory_path = data_files_directory_path + '/' + mouse_ID_and_date
         traces_file           = imaging_files_directory_path + '/' + 'traces.csv'
         valid_cells_file      = imaging_files_directory_path + '/' + 'valid_cells.csv' 
         dropped_frames_file   = imaging_files_directory_path + '/' + 'dropped_frames.csv'
         output_file_name      = imaging_files_directory_path + '/' + mouse_ID_and_date
 
-#        #create an output folder for each input file
-#        output_directory_path = '/Users/njoshi/Desktop/output_files/' + raw_behavior_file[-43:-26] + '_combined_behavior_and_events'
-#        if output_directory_path:
-#            if not os.path.isdir(output_directory_path):
-#                os.makedirs(output_directory_path) 
-
         # This if statement is to make sure that the relevant files are actually there in the folder
         if os.path.isfile(traces_file):        
-            print 'The matching traces file is: '+ traces_file
+            print 'The matching traces file is:  '+ traces_file
             if os.path.isfile(valid_cells_file):
-                print 'The matching valid_cells file is: '+ valid_cells_file
+                print 'The matching valid_cells file:'+ valid_cells_file
                 #if there is a file for dropped frames, print a notification
                 if os.path.isfile (dropped_frames_file):
                     print 'This recording has dropped frames: '+ dropped_frames_file
@@ -93,7 +74,7 @@ def main():
                 extract_details_per_frame(traces_file,valid_cells_file,behavior_file,dropped_frames_file,frame_ID_adjustment_factor,output_file_name)
         else:
             print ('This behavior file either does not have imaging data, or the imaging files are not named properly. ' +
-                   'The script expects to find files with names events.csv, valid_cells.csv, and dropped_frames.csv (if there are dropped frames)')
+                   'The script expects to find files with names traces.csv, valid_cells.csv, and dropped_frames.csv (if there are dropped frames)')
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
@@ -287,31 +268,32 @@ def extract_details_per_frame (traces_file, valid_cells_file, raw_behavior_file,
 
 
     print 'Now we will save all this information in one csv file:'
-    traces_adjusted_for_missing_frames = numpy.empty((number_of_frames_after_downsampling,behavior_downsampled.shape[1] + number_of_valid_cells),dtype='float')
+    #the number of frames will be determined by size of behavior_downsampled and number_of_frames_after_downsampling, whichever is smaller
+    traces_adjusted_for_missing_frames = numpy.zeros((min(number_of_frames_after_downsampling,behavior_downsampled.shape[0]),behavior_downsampled.shape[1] + number_of_valid_cells),dtype='float')
 
     adjust_for_missing_frames = 0
     
-    for frame in xrange(number_of_frames_after_downsampling):
+    for frame in xrange(traces_adjusted_for_missing_frames.shape[0]):
         if(((frame+1)*frame_ID_adjustment_factor) in dropped_frames):
             adjust_for_missing_frames = adjust_for_missing_frames + 1
             for cell in xrange(traces_adjusted_for_missing_frames.shape[1]):
-                if (cell < behavior_downsampled.shape[1]):
+                if (cell < behavior_downsampled.shape[1]): #fill behavior data in the first 12 columns
                     traces_adjusted_for_missing_frames[frame][cell] = behavior_downsampled[frame][cell]
                 else:
                     traces_adjusted_for_missing_frames[frame][cell] = 0 # use numpy.nan to be more exact, b/c the frame is missing
         #business is as usual if frames are not missing:
         else:
             for cell in range(0,traces_adjusted_for_missing_frames.shape[1]):
-                if (cell < behavior_downsampled.shape[1]):
+                if (cell < behavior_downsampled.shape[1]): #fill behavior data in the first 12 columns
                     traces_adjusted_for_missing_frames[frame][cell] = behavior_downsampled[frame][cell]
-                else:
+                else: #fill trace values in the remaining columns
                     traces_adjusted_for_missing_frames[frame][cell] = traces_by_frame_for_valid_cells[cell-behavior_downsampled.shape[1]][frame - adjust_for_missing_frames]   
     
     print 'The saved array size is:'
     print traces_adjusted_for_missing_frames.shape
     #now save the array as a csv file in the same location as the input files
     save_file_name = output_file_name + '_combined_behavior_and_traces.csv'
-    print save_file_name
+    #print save_file_name
     numpy.savetxt(save_file_name, traces_adjusted_for_missing_frames, fmt='%1.5f', delimiter=',', newline='\n') 
 ###############################################################################
 
