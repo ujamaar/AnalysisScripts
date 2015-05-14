@@ -20,11 +20,11 @@ def main():
     #split_laps_in_environment=1212 #to split into odd and even trials
     split_laps_in_environment = 1
 
-#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-#    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
 
-    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
-    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
+#    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
+#    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
 

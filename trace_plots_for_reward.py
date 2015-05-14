@@ -7,19 +7,20 @@ import matplotlib.cm as mplcm
 import matplotlib.colors as colors
 from matplotlib.collections import Collection
 from matplotlib.artist import allow_rasterization
+import gc
 
 def main():
     # specify the various parameters as needed:
     frames_pre_reward_onset = 50 #time in milliseconds
     frames_post_reward_onset = 50 #time in milliseconds
 
-#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-#    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
 
-    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
-    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
+#    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC22'
+#    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
-    replace_previous_versions_of_plots = True  
+    replace_previous_versions_of_plots = False  
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
@@ -306,6 +307,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
                             odor_lap_count += 1
             graph_this_cell(pp,mouse_ID_and_date,cell,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_reward_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells)          
         pp.close()
+        gc.collect()
         print 'Done saving pdf'
     else:
         print 'There were no odors in this recording.'
@@ -362,7 +364,6 @@ def graph_this_cell(pp,mouse_ID_and_date,cell_index,trace_matrices,adjusted_odor
 #    plt.show()
     pp.savefig()
     plt.close(fig)
-
 
 ###############################################################################
 ######## insert(c) efficiently rasterize the plots into small size ############
