@@ -149,9 +149,9 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
     #find out the odor sequence for each environment
     #this is to print the correct odor sequence on the x-axis
     #and find out the track length in each environment      
-    odor_sequence = numpy.zeros((number_of_environments*3),dtype='int')
-    odor_start_and_end_points = numpy.zeros((number_of_environments*6),dtype='int')   # 3 odors, 3 start points + 3 end points = 6 total points
-    all_laps_odor_start_frames = numpy.zeros((total_number_of_laps*3),dtype='int')   # 3 odors, 3 start frames per lap
+    odor_sequence = numpy.zeros((number_of_environments*4),dtype='int')
+    odor_start_and_end_points = numpy.zeros((number_of_environments*8),dtype='int')   # 3 odors, 3 start points + 3 end points = 6 total points
+    all_laps_odor_start_frames = numpy.zeros((total_number_of_laps*4),dtype='int')   # 3 odors, 3 start frames per lap
     all_laps_reward_start_frames = numpy.zeros((total_number_of_laps),dtype='int')   # 1 reward window per lap
     env_track_lengths = numpy.zeros(number_of_environments,dtype='int')
     adjusted_odor_label = numpy.zeros((total_number_of_laps*3),dtype='int') # give unique label to each of the 9 total possible presentations of odor (max of 3 environments with a max of 3 odors each)
@@ -185,21 +185,21 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
         for env_frame in range(2,total_number_of_frames):
             if(environment[env_frame] == env+1 and odor[env_frame] > odor[env_frame-1]  and odor[env_frame] > odor[env_frame-2]):
                 lap_under_evaluation = lap_count[env_frame]
-                odor_sequence[env*3 + odor_count_in_this_sequence] = odor[env_frame]
-                sum_of_odor_start_points = distance[env_frame] + odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2]
-                odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2] = sum_of_odor_start_points #this is where the odor starts, distance has been rounded to nearest 50mm
-                all_laps_odor_start_frames[lap_count[env_frame]*3 + odor_count_in_this_sequence] = env_frame
-                adjusted_odor_label[lap_count[env_frame]*3 + odor_count_in_this_sequence] = env*3 + odor_count_in_this_sequence + 1
+                odor_sequence[env*4 + odor_count_in_this_sequence] = odor[env_frame]
+                sum_of_odor_start_points = distance[env_frame] + odor_start_and_end_points[env*8 + odor_count_in_this_sequence*2]
+                odor_start_and_end_points[env*8 + odor_count_in_this_sequence*2] = sum_of_odor_start_points #this is where the odor starts, distance has been rounded to nearest 50mm
+                all_laps_odor_start_frames[lap_count[env_frame]*4 + odor_count_in_this_sequence] = env_frame
+                adjusted_odor_label[lap_count[env_frame]*4 + odor_count_in_this_sequence] = env*4 + odor_count_in_this_sequence + 1
             elif(environment[env_frame] == env+1 and odor[env_frame] < odor[env_frame-1] and odor[env_frame] < odor[env_frame-2]):
-                sum_of_odor_end_points = distance[env_frame] + odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2 + 1]
-                odor_start_and_end_points[env*6 + odor_count_in_this_sequence*2 + 1] = sum_of_odor_end_points
+                sum_of_odor_end_points = distance[env_frame] + odor_start_and_end_points[env*8 + odor_count_in_this_sequence*2 + 1]
+                odor_start_and_end_points[env*8 + odor_count_in_this_sequence*2 + 1] = sum_of_odor_end_points
                 odor_count_in_this_sequence = odor_count_in_this_sequence + 1
-            elif(lap_count[env_frame] > lap_under_evaluation or odor_count_in_this_sequence >= 3):
+            elif(lap_count[env_frame] > lap_under_evaluation or odor_count_in_this_sequence >= 4):
                 odor_count_in_this_sequence = 0
 
-        for odor_point in range(0,6):
-            average_distance_odor_point = odor_start_and_end_points[env*6 + odor_point] / laps_in_environment[env]
-            odor_start_and_end_points[env*6 + odor_point] = average_distance_odor_point
+        for odor_point in range(0,8):
+            average_distance_odor_point = odor_start_and_end_points[env*8 + odor_point] / laps_in_environment[env]
+            odor_start_and_end_points[env*8 + odor_point] = average_distance_odor_point
 
     ###############################################################################
 
@@ -211,9 +211,9 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
         odor_sequence_in_letters[odor] = odor_labels[odor_sequence[odor]]
            
  
-    print 'Odor sequence in each environment (3 odors per environment):'
+    print 'Odor sequence in each environment (4 odors per environment):'
     print odor_sequence
-    print 'Odors sequence in letters (3 odors per environment):'
+    print 'Odors sequence in letters (4 odors per environment):'
     print odor_sequence_in_letters
     print 'The odors start and end at these distance points:'
     print odor_start_and_end_points           
@@ -227,13 +227,24 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
 
 #    trace_matrices = [list(numpy.zeros((total_number_of_cells,laps_in_environment[],dtype='float')) for ref_var in xrange(number_of_reference_variables)] 
 
+    number_of_frames_in_trace_plot = frames_pre_reward_onset + frames_post_reward_onset
     adjusted_odors,laps_with_this_adjusted_odor = get_unique_elements(adjusted_odor_label,return_index=False, return_inverse=False,return_counts=True)
     adjusted_odors = adjusted_odors[1:]
     laps_with_this_adjusted_odor = laps_with_this_adjusted_odor[1:]
     print 'All adjusted odors and the number of laps with those odors:'
     print adjusted_odors
     print laps_with_this_adjusted_odor
-    number_of_frames_in_trace_plot = frames_pre_reward_onset + frames_post_reward_onset
+
+    #plot the reward trace only once per environment
+#    reduced_adjusted_odor = []
+#    reduced_laps_with_this_adjusted_odor = []
+#    for odor in adjusted_odors:
+#        if(odor <
+    
+    print 'One adjusted odor per environment and the number of laps with those odors:'
+    print adjusted_odors
+    print laps_with_this_adjusted_odor            
+
 
 
     #for printing trial information on the plots
@@ -241,7 +252,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
     sequence_of_lap_counts   = ''
     sequence_of_track_lengths= ''
     for env in range(0,number_of_environments):
-        sequence_of_environments = sequence_of_environments + odor_sequence_in_letters[3*env] + odor_sequence_in_letters[3*env+1] + odor_sequence_in_letters[3*env+2]
+        sequence_of_environments = sequence_of_environments + odor_sequence_in_letters[4*env] + odor_sequence_in_letters[4*env+1] + odor_sequence_in_letters[4*env+2] + odor_sequence_in_letters[4*env+3]
         sequence_of_lap_counts = sequence_of_lap_counts + str(laps_in_environment[env])
         sequence_of_track_lengths = sequence_of_track_lengths + str( float(env_track_lengths[env]) / 1000.00)
         if(env < number_of_environments-1):
@@ -281,6 +292,8 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
         ##########done generating file location and filename for output pdf  ##########
         ###############################################################################
 
+
+
         #now for each cell, generate matrices of traces for each odor to be plotted, then plot these matrices in a single figure
         #total_number_of_cells
         for cell in xrange(total_number_of_cells):
@@ -288,23 +301,26 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
             trace_matrices = [list(numpy.zeros((laps_with_this_adjusted_odor[odor],number_of_frames_in_trace_plot),dtype='float')) for odor in xrange(len(adjusted_odors))]
     
             trace_data_for_this_cell = trace_data[cell,:]
+            last_odor = -1
             for odor in xrange(len(trace_matrices)):
-                odor_lap_count = 0
-                for unknown_odor in xrange(len(adjusted_odor_label)):
-                    if(adjusted_odor_label[unknown_odor] == adjusted_odors[odor]):
-                        current_lap = unknown_odor / 3
-                        #select the trace data from the right range of frames in each lap
-                        if(all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset > 0 and all_laps_reward_start_frames[current_lap]+frames_post_reward_onset < total_number_of_frames):                           
-                            trace_matrices[odor][odor_lap_count][:] = trace_data_for_this_cell[all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset:all_laps_reward_start_frames[current_lap]+frames_post_reward_onset]
-                            odor_lap_count += 1
-                        elif(all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset < 0 and all_laps_reward_start_frames[current_lap]+frames_post_reward_onset < total_number_of_frames):
-                            empty_part_of_this_list_at_the_beginning = [0.00]*(frames_pre_reward_onset - all_laps_reward_start_frames[current_lap])
-                            trace_matrices[odor][odor_lap_count][:] =  numpy.append(empty_part_of_this_list_at_the_beginning,trace_data_for_this_cell[0:all_laps_reward_start_frames[current_lap]+frames_post_reward_onset])
-                            odor_lap_count += 1                        
-                        elif(all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset > 0 and all_laps_reward_start_frames[current_lap]+frames_post_reward_onset > total_number_of_frames):
-                            empty_part_of_this_list_at_the_end = [0.00]*(all_laps_reward_start_frames[current_lap]+frames_post_reward_onset - total_number_of_frames)
-                            trace_matrices[odor][odor_lap_count][:] = numpy.append(trace_data_for_this_cell[all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset:total_number_of_frames],empty_part_of_this_list_at_the_end)
-                            odor_lap_count += 1
+                if(odor%4 > last_odor%4):
+                    last_odor = odor
+                    odor_lap_count = 0
+                    for unknown_odor in xrange(len(adjusted_odor_label)):
+                        if(adjusted_odor_label[unknown_odor] == adjusted_odors[odor]):
+                            current_lap = unknown_odor / 3
+                            #select the trace data from the right range of frames in each lap
+                            if(all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset > 0 and all_laps_reward_start_frames[current_lap]+frames_post_reward_onset < total_number_of_frames):                           
+                                trace_matrices[odor][odor_lap_count][:] = trace_data_for_this_cell[all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset:all_laps_reward_start_frames[current_lap]+frames_post_reward_onset]
+                                odor_lap_count += 1
+                            elif(all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset < 0 and all_laps_reward_start_frames[current_lap]+frames_post_reward_onset < total_number_of_frames):
+                                empty_part_of_this_list_at_the_beginning = [0.00]*(frames_pre_reward_onset - all_laps_reward_start_frames[current_lap])
+                                trace_matrices[odor][odor_lap_count][:] =  numpy.append(empty_part_of_this_list_at_the_beginning,trace_data_for_this_cell[0:all_laps_reward_start_frames[current_lap]+frames_post_reward_onset])
+                                odor_lap_count += 1                        
+                            elif(all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset > 0 and all_laps_reward_start_frames[current_lap]+frames_post_reward_onset > total_number_of_frames):
+                                empty_part_of_this_list_at_the_end = [0.00]*(all_laps_reward_start_frames[current_lap]+frames_post_reward_onset - total_number_of_frames)
+                                trace_matrices[odor][odor_lap_count][:] = numpy.append(trace_data_for_this_cell[all_laps_reward_start_frames[current_lap]-frames_pre_reward_onset:total_number_of_frames],empty_part_of_this_list_at_the_end)
+                                odor_lap_count += 1
             graph_this_cell(pp,mouse_ID_and_date,cell,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_reward_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells)          
         pp.close()
         gc.collect()
@@ -348,9 +364,9 @@ def graph_this_cell(pp,mouse_ID_and_date,cell_index,trace_matrices,adjusted_odor
         #to mark the frame for odor onset with a blue verticle line
         axs[ax].axvline(x=frames_pre_reward_onset, linewidth=0.2, color='b')
         
-        this_env = (adjusted_odors[ax]-1)/3
+        this_env = (adjusted_odors[ax]-1)/4
         this_odor = odor_sequence_in_letters[adjusted_odors[ax]-1]
-        this_odor_index = (adjusted_odors[ax]-1)%3+1
+        this_odor_index = (adjusted_odors[ax]-1)%4+1
         axs[ax].set_ylabel('env%d - %s%d'%(this_env+1,this_odor,this_odor_index),rotation='horizontal',horizontalalignment='right',color='red',fontsize='x-small')
         
         axs[ax].tick_params(axis='y', which='major', labelsize=4) #for small yaxis labels

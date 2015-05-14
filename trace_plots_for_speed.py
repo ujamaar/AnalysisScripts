@@ -38,9 +38,9 @@ def main():
                             mouse_ID = behavior_file[0:i]
                             mouse_ID_and_date = behavior_file[0:i+11]
                             break
-                    for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path + '/' + mouse_ID + '/odor_trace_plots'):                    
+                    for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path + '/' + mouse_ID + '/odor_speed_trace_plots'):                    
                         for plot_file in plot_files:
-                            if plot_file.endswith(mouse_ID_and_date + '_odor_trace_plots.pdf'):  
+                            if plot_file.endswith(mouse_ID_and_date + '_odor_speed_trace_plots.pdf'):  
                                 behavior_file_has_already_been_analyzed = True
                                 print '----------------------------------------------------------------'
                                 print 'This behavior file has already been plotted: ' + behavior_file
@@ -258,12 +258,12 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
         print 'Mouse ID is: %s'%mouse_ID_and_date
     
         #create an output folder, if it is not already there 
-        pdf_output_directory_path = output_directory_path + '/' + mouse_ID  + '/odor_trace_plots'
+        pdf_output_directory_path = output_directory_path + '/' + mouse_ID  + '/odor_speed_trace_plots'
         if pdf_output_directory_path:
             if not os.path.isdir(pdf_output_directory_path):
                 os.makedirs(pdf_output_directory_path)
     
-        pdf_filename = pdf_output_directory_path + '/' + mouse_ID_and_date + '_odor_trace_plots.pdf'
+        pdf_filename = pdf_output_directory_path + '/' + mouse_ID_and_date + '_odor_speed_trace_plots.pdf'
         pp = PdfPages(pdf_filename) 
     
         ###############################################################################
@@ -271,40 +271,35 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
         ###############################################################################
     
     
-#        figs = []
-        #now for each cell, generate matrices of traces for each odor to be plotted, then plot these matrices in a single figure
-        #total_number_of_cells
-        for cell in xrange(total_number_of_cells):
-            print 'Plotting cell# %  d of %d'%(cell,total_number_of_cells)  
-            trace_matrices = [list(numpy.zeros((laps_with_this_adjusted_odor[odor],number_of_frames_in_trace_plot),dtype='float')) for odor in xrange(len(adjusted_odors))]
-    
-            trace_data_for_this_cell = trace_data[cell,:]
-            for odor in xrange(len(trace_matrices)):
-                odor_lap_count = 0
-                for unknown_odor in xrange(len(all_laps_odor_start_frames)):
-                    if(adjusted_odor_label[unknown_odor] == adjusted_odors[odor]):
-                        #print trace_data_for_this_cell[all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset:all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset]
-                        if(all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset > 0 and all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset < total_number_of_frames):
-                            trace_matrices[odor][odor_lap_count][:] = trace_data_for_this_cell[all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset:all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset]
-                            odor_lap_count += 1
-                        elif(all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset < 0 and all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset < total_number_of_frames):
-                            empty_part_of_this_list_at_the_beginning = [0.00]*(frames_pre_odor_onset - all_laps_odor_start_frames[unknown_odor])
-                            trace_matrices[odor][odor_lap_count][:] =  numpy.append(empty_part_of_this_list_at_the_beginning,trace_data_for_this_cell[0:all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset])
-                            odor_lap_count += 1                        
-                        elif(all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset > 0 and all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset > total_number_of_frames):
-                            empty_part_of_this_list_at_the_end = [0.00]*(all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset - total_number_of_frames)
-                            trace_matrices[odor][odor_lap_count][:] = numpy.append(trace_data_for_this_cell[all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset:total_number_of_frames],empty_part_of_this_list_at_the_end)
-                            odor_lap_count += 1
-              
-            cell_figure = graph_this_cell(mouse_ID_and_date,cell,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells)          
-            pp.savefig(cell_figure)
-#            figs.append(cell_figure)    
-    #        numpy.savetxt(file_path.replace('.csv','_traces_for_cell%d.csv'%cell), trace_matrices[1], fmt='%1.5f', delimiter=',', newline='\n') 
-                    
-                       
-        #now save all figures in a pdf, one figure for each cell
-#        for fig in figs:
-#                pp.savefig(fig)
+        print 'Generating speed plots' 
+        trace_matrices = [list(numpy.zeros((laps_with_this_adjusted_odor[odor],number_of_frames_in_trace_plot),dtype='float')) for odor in xrange(len(adjusted_odors))]
+
+        adjusted_running_speed = running_speed
+        for speed_frame in xrange(len(running_speed)):
+            if (running_speed[speed_frame] < -100):
+                adjusted_running_speed[speed_frame] = 0
+            
+            
+        trace_data_for_this_cell = adjusted_running_speed
+        for odor in xrange(len(trace_matrices)):
+            odor_lap_count = 0
+            for unknown_odor in xrange(len(all_laps_odor_start_frames)):
+                if(adjusted_odor_label[unknown_odor] == adjusted_odors[odor]):
+                    #print trace_data_for_this_cell[all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset:all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset]
+                    if(all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset > 0 and all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset < total_number_of_frames):
+                        trace_matrices[odor][odor_lap_count][:] = trace_data_for_this_cell[all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset:all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset]
+                        odor_lap_count += 1
+                    elif(all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset < 0 and all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset < total_number_of_frames):
+                        empty_part_of_this_list_at_the_beginning = [0.00]*(frames_pre_odor_onset - all_laps_odor_start_frames[unknown_odor])
+                        trace_matrices[odor][odor_lap_count][:] =  numpy.append(empty_part_of_this_list_at_the_beginning,trace_data_for_this_cell[0:all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset])
+                        odor_lap_count += 1                        
+                    elif(all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset > 0 and all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset > total_number_of_frames):
+                        empty_part_of_this_list_at_the_end = [0.00]*(all_laps_odor_start_frames[unknown_odor]+frames_post_odor_onset - total_number_of_frames)
+                        trace_matrices[odor][odor_lap_count][:] = numpy.append(trace_data_for_this_cell[all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset:total_number_of_frames],empty_part_of_this_list_at_the_end)
+                        odor_lap_count += 1
+            
+        cell_figure = graph_this_cell(mouse_ID_and_date,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells)          
+        pp.savefig(cell_figure)
         pp.close()
         print 'Done saving pdf'
 
@@ -317,14 +312,14 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
 
 
 
-def graph_this_cell(mouse_ID_and_date,cell_index,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells):
+def graph_this_cell(mouse_ID_and_date,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells):
   
     number_of_subplots = len(adjusted_odors)            
 
     fig,axs = plt.subplots(number_of_subplots, sharex=True, sharey=True)   
     fig.subplots_adjust(hspace=0.15)
 #    fig.set_rasterized(True)
-    fig.suptitle('%s   Odor trace plots for cell#%d / %d' %(mouse_ID_and_date,cell_index,total_number_of_cells))
+    fig.suptitle('%s   Speed (mm/s) plots for each lap of each odor' %mouse_ID_and_date)
     plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
     plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments,fontsize='xx-small', color='red', ha ='left')
     plt.figtext(0.01,0.96,"laps    :%s" %sequence_of_lap_counts ,fontsize='xx-small', color='red', ha ='left')
