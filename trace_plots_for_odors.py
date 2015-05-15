@@ -13,11 +13,11 @@ def main():
     frames_pre_odor_onset = 50 #time in milliseconds
     frames_post_odor_onset = 50 #time in milliseconds
 
-#    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-#    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
 
-    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC08'
-    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
+#    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC08'
+#    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
 
@@ -296,15 +296,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
                             trace_matrices[odor][odor_lap_count][:] = numpy.append(trace_data_for_this_cell[all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset:total_number_of_frames],empty_part_of_this_list_at_the_end)
                             odor_lap_count += 1
               
-            cell_figure = graph_this_cell(mouse_ID_and_date,cell,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells)          
-            pp.savefig(cell_figure)
-#            figs.append(cell_figure)    
-    #        numpy.savetxt(file_path.replace('.csv','_traces_for_cell%d.csv'%cell), trace_matrices[1], fmt='%1.5f', delimiter=',', newline='\n') 
-                    
-                       
-        #now save all figures in a pdf, one figure for each cell
-#        for fig in figs:
-#                pp.savefig(fig)
+            graph_this_cell(pp,mouse_ID_and_date,cell,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells)          
         pp.close()
         print 'Done saving pdf'
 
@@ -315,54 +307,61 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
     ########################done generating data for plots ########################
     ###############################################################################
 
-
-
-def graph_this_cell(mouse_ID_and_date,cell_index,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells):
+def graph_this_cell(pp,mouse_ID_and_date,cell_index,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells):
   
     number_of_subplots = len(adjusted_odors)            
 
     fig,axs = plt.subplots(number_of_subplots, sharex=True, sharey=True)   
     fig.subplots_adjust(hspace=0.15)
-#    fig.set_rasterized(True)
     fig.suptitle('%s   Odor trace plots for cell#%d / %d' %(mouse_ID_and_date,cell_index,total_number_of_cells))
     plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
-    plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments,fontsize='xx-small', color='red', ha ='left')
-    plt.figtext(0.01,0.96,"laps    :%s" %sequence_of_lap_counts ,fontsize='xx-small', color='red', ha ='left')
-    plt.figtext(0.01,0.94,"len(m):%s" %sequence_of_track_lengths,fontsize='xx-small', color='red', ha ='left')
+    plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments ,fontsize='xx-small', color='red', ha ='left')
+    plt.figtext(0.01,0.96,"laps    :%s"%sequence_of_lap_counts   ,fontsize='xx-small', color='red', ha ='left')
+    plt.figtext(0.01,0.94,"len(m):%s"  %sequence_of_track_lengths,fontsize='xx-small', color='red', ha ='left')
 
     plt.figtext((frames_pre_odor_onset*1.00/number_of_frames_in_trace_plot),0.905,"Odor",fontsize='xx-small', color='blue', ha ='left')
     plt.xlabel('Frame number', fontsize='x-small')
     
-    for ax in xrange(len(axs)):
+    if(number_of_subplots > 1):
+        current_subplot = -1
+        for ax in axs:
+            current_subplot += 1
+            ax = generate_subplot(ax,current_subplot,trace_matrices,number_of_frames_in_trace_plot,frames_pre_odor_onset,adjusted_odors,odor_sequence_in_letters)
+    elif(number_of_subplots == 1):
+        ax = generate_subplot(axs,0,trace_matrices,number_of_frames_in_trace_plot,frames_pre_odor_onset,adjusted_odors,odor_sequence_in_letters)
 
-        #this is to change the color of trace line in each lap, from blue to red
-        NUM_COLORS = len(trace_matrices[ax])
-        cm = plt.get_cmap('jet')
-        cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
-        scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
-        axs[ax].set_color_cycle([scalarMap.to_rgba(i) for i in range(NUM_COLORS)])
+#    plt.show()
+    pp.savefig()
+    plt.close(fig)
 
-        for lap in xrange(len(trace_matrices[ax])): 
-            axs[ax].plot(range(number_of_frames_in_trace_plot),trace_matrices[ax][lap],linewidth = 0.2)
+def generate_subplot(ax,current_subplot,trace_matrices,number_of_frames_in_trace_plot,frames_pre_odor_onset,adjusted_odors,odor_sequence_in_letters):
 
-        #to mark the frame for odor onset, with a blue verticle line
-        axs[ax].axvline(x=frames_pre_odor_onset, linewidth=0.2, color='b')
-        
-        this_env = (adjusted_odors[ax]-1)/4
-        this_odor = odor_sequence_in_letters[adjusted_odors[ax]-1]
-        this_odor_index = (adjusted_odors[ax]-1)%4+1
-        axs[ax].set_ylabel('env%d -  %s%d'%(this_env+1,this_odor,this_odor_index),rotation='horizontal',horizontalalignment='right',color='red',fontsize='x-small')
-        
-        axs[ax].tick_params(axis='y', which='major', labelsize=4) #for small yaxis labels
+    NUM_COLORS = len(trace_matrices[current_subplot])
+    cm = plt.get_cmap('jet')
+    cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
+    scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
+    ax.set_color_cycle([scalarMap.to_rgba(i) for i in range(NUM_COLORS)])
 
-        [i.set_linewidth(0.1) for i in axs[ax].spines.itervalues()] #for thin border lines
-        axs[ax].set_xlim(0,number_of_frames_in_trace_plot)
+    for lap in xrange(len(trace_matrices[current_subplot])): 
+        ax.plot(range(number_of_frames_in_trace_plot),trace_matrices[current_subplot][lap],linewidth = 0.2)
 
-        #for efficiently rasterizing the plot
-        insert(axs[ax])
+    #to mark the frame for odor onset with a blue verticle line
+    ax.axvline(x=frames_pre_odor_onset, linewidth=0.2, color='b')
+    
+    this_env = (adjusted_odors[current_subplot]-1)/4
+    this_odor = odor_sequence_in_letters[adjusted_odors[current_subplot]-1]
+    this_odor_index = (adjusted_odors[current_subplot]-1)%4+1
+    ax.set_ylabel('env%d -  %s%d'%(this_env+1,this_odor,this_odor_index),rotation='horizontal',horizontalalignment='right',color='red',fontsize='x-small')
+    
+    ax.tick_params(axis='y', which='major', labelsize=4) #for small yaxis labels
 
-    plt.close(fig)    
-    return fig
+    [i.set_linewidth(0.1) for i in ax.spines.itervalues()] #for thin border lines
+    ax.set_xlim(0,number_of_frames_in_trace_plot)
+
+    #for efficiently rasterizing the plot
+    insert(ax)
+    
+    return ax
 
 ###############################################################################
 ######## insert(c) efficiently rasterize the plots into small size ############

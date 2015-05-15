@@ -7,7 +7,6 @@ import matplotlib.cm as mplcm
 import matplotlib.colors as colors
 from matplotlib.collections import Collection
 from matplotlib.artist import allow_rasterization
-import gc
 
 def main():
     # specify the various parameters as needed:
@@ -17,7 +16,7 @@ def main():
     data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
     output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
 
-#    data_files_directory_path  = '/Volumes/walter/Virtual_Odor/imaging_data/wfnjC08'
+#    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19/wfnjC19_2015_03_16'
 #    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
@@ -252,7 +251,6 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
     print laps_with_this_adjusted_odor            
 
 
-
     #for printing trial information on the plots
     sequence_of_environments = ''
     sequence_of_lap_counts   = ''
@@ -302,7 +300,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
 
         #now for each cell, generate matrices of traces for each odor to be plotted, then plot these matrices in a single figure
         #total_number_of_cells
-        for cell in xrange(2):
+        for cell in xrange(total_number_of_cells):
             print 'Plotting cell# %  d of %d'%(cell,total_number_of_cells)  
             trace_matrices = [list(numpy.zeros((laps_with_this_adjusted_odor[odor],number_of_frames_in_trace_plot),dtype='float')) for odor in xrange(len(adjusted_odors))]
     
@@ -327,7 +325,6 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_reward
                             odor_lap_count += 1
             graph_this_cell(pp,mouse_ID_and_date,cell,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_reward_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells)          
         pp.close()
-        gc.collect()
         print 'Done saving pdf'
     else:
         print 'There were no odors in this recording.'
@@ -347,43 +344,53 @@ def graph_this_cell(pp,mouse_ID_and_date,cell_index,trace_matrices,adjusted_odor
     fig.subplots_adjust(hspace=0.15)
     fig.suptitle('%s   Reward trace plots for cell#%d / %d' %(mouse_ID_and_date,cell_index,total_number_of_cells))
     plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
-    plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments,fontsize='xx-small', color='red', ha ='left')
-    plt.figtext(0.01,0.96,"laps    :%s"%sequence_of_lap_counts ,fontsize='xx-small', color='red', ha ='left')
+    plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments ,fontsize='xx-small', color='red', ha ='left')
+    plt.figtext(0.01,0.96,"laps    :%s"%sequence_of_lap_counts   ,fontsize='xx-small', color='red', ha ='left')
     plt.figtext(0.01,0.94,"len(m):%s"  %sequence_of_track_lengths,fontsize='xx-small', color='red', ha ='left')
 
     plt.figtext((frames_pre_reward_onset*1.00/number_of_frames_in_trace_plot),0.905,"Reward",fontsize='xx-small', color='blue', ha ='left')
-    
-    for ax in xrange(len(axs)):
-
-        #this is to change the color of trace line in each lap, from blue to red
-        NUM_COLORS = len(trace_matrices[ax])
-        cm = plt.get_cmap('jet')
-        cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
-        scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
-        axs[ax].set_color_cycle([scalarMap.to_rgba(i) for i in range(NUM_COLORS)])
-
-        for lap in xrange(len(trace_matrices[ax])): 
-            axs[ax].plot(range(number_of_frames_in_trace_plot),trace_matrices[ax][lap],linewidth = 0.2)
-
-        #to mark the frame for odor onset with a blue verticle line
-        axs[ax].axvline(x=frames_pre_reward_onset, linewidth=0.2, color='b')
+    plt.xlabel('Frame number', fontsize='x-small')
         
-        this_env = (adjusted_odors[ax]-1)/4
-        this_odor = odor_sequence_in_letters[adjusted_odors[ax]-1]
-        this_odor_index = (adjusted_odors[ax]-1)%4+1
-        axs[ax].set_ylabel('env%d'%(this_env+1),rotation='horizontal',horizontalalignment='right',color='red',fontsize='x-small')
-        
-        axs[ax].tick_params(axis='y', which='major', labelsize=4) #for small yaxis labels
-
-        [i.set_linewidth(0.1) for i in axs[ax].spines.itervalues()] #for thin border lines
-        axs[ax].set_xlim(0,number_of_frames_in_trace_plot)
-
-        #for efficiently rasterizing the plot
-        insert(axs[ax])
+    if(number_of_subplots > 1):
+        current_subplot = -1
+        for ax in axs:
+            current_subplot += 1
+            ax = generate_subplot(ax,current_subplot,trace_matrices,number_of_frames_in_trace_plot,frames_pre_reward_onset,adjusted_odors)
+    elif(number_of_subplots == 1):
+        ax = generate_subplot(axs,0,trace_matrices,number_of_frames_in_trace_plot,frames_pre_reward_onset,adjusted_odors)
 
 #    plt.show()
     pp.savefig()
     plt.close(fig)
+
+def generate_subplot(ax,current_subplot,trace_matrices,number_of_frames_in_trace_plot,frames_pre_reward_onset,adjusted_odors):
+
+    NUM_COLORS = len(trace_matrices[current_subplot])
+    cm = plt.get_cmap('jet')
+    cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
+    scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
+    ax.set_color_cycle([scalarMap.to_rgba(i) for i in range(NUM_COLORS)])
+
+    for lap in xrange(len(trace_matrices[current_subplot])): 
+        ax.plot(range(number_of_frames_in_trace_plot),trace_matrices[current_subplot][lap],linewidth = 0.2)
+
+    #to mark the frame for odor onset with a blue verticle line
+    ax.axvline(x=frames_pre_reward_onset, linewidth=0.2, color='b')
+    
+    this_env = (adjusted_odors[current_subplot]-1)/4
+    ax.set_ylabel('env%d'%(this_env+1),rotation='horizontal',horizontalalignment='right',color='red',fontsize='x-small')
+    
+    ax.tick_params(axis='y', which='major', labelsize=4) #for small yaxis labels
+
+    [i.set_linewidth(0.1) for i in ax.spines.itervalues()] #for thin border lines
+    ax.set_xlim(0,number_of_frames_in_trace_plot)
+
+    #for efficiently rasterizing the plot
+    insert(ax)
+    
+    return ax
+
+
 
 ###############################################################################
 ######## insert(c) efficiently rasterize the plots into small size ############
