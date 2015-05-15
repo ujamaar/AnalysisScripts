@@ -199,7 +199,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
         odor_sequence_in_letters[odor] = odor_labels[odor_sequence[odor]]
            
  
-    print 'Odor sequence in each environment (6 odors per environment):'
+    print 'Odor sequence in each environment (4 odors per environment):'
     print odor_sequence
     print 'Odors sequence in letters (4 odors per environment):'
     print odor_sequence_in_letters
