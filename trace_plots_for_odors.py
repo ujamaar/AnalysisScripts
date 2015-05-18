@@ -10,14 +10,15 @@ from matplotlib.artist import allow_rasterization
 
 def main():
     # specify the various parameters as needed:
+    frame_rate_after_down_sampling = 5
     frames_pre_odor_onset = 50 #time in milliseconds
     frames_post_odor_onset = 50 #time in milliseconds
 
-    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-    #output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
 
-    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19/wfnjC19_2015_02_25'
-    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19/wfnjC19_2015_02_25'
+    #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
 
@@ -59,7 +60,7 @@ def main():
         print '----------------------------------------------------------------'
         print 'Plotting this file: '+ behavior_and_traces_file_path
         
-        read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_onset,frames_post_odor_onset,output_directory_path)
+        read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_onset,frames_post_odor_onset,output_directory_path,frame_rate_after_down_sampling)
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
 
@@ -74,7 +75,7 @@ def natural_key(string_):
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
 
-def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_onset,frames_post_odor_onset,output_directory_path):
+def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_onset,frames_post_odor_onset,output_directory_path,frame_rate_after_down_sampling):
     
     behavior_and_trace_data = numpy.loadtxt(behavior_and_traces_file_path, dtype='float', delimiter=',')
     
@@ -274,7 +275,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
 #        figs = []
         #now for each cell, generate matrices of traces for each odor to be plotted, then plot these matrices in a single figure
         #total_number_of_cells
-        for cell in xrange(total_number_of_cells):
+        for cell in xrange(2):
             print 'Plotting cell# %  d of %d'%(cell,total_number_of_cells)  
             trace_matrices = [list(numpy.zeros((laps_with_this_adjusted_odor[odor],number_of_frames_in_trace_plot),dtype='float')) for odor in xrange(len(adjusted_odors))]
     
@@ -296,7 +297,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
                             trace_matrices[odor][odor_lap_count][:] = numpy.append(trace_data_for_this_cell[all_laps_odor_start_frames[unknown_odor]-frames_pre_odor_onset:total_number_of_frames],empty_part_of_this_list_at_the_end)
                             odor_lap_count += 1
               
-            graph_this_cell(pp,mouse_ID_and_date,cell,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells)          
+            graph_this_cell(pp,mouse_ID_and_date,cell,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells,frame_rate_after_down_sampling)          
         pp.close()
         print 'Done saving pdf'
 
@@ -307,7 +308,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
     ########################done generating data for plots ########################
     ###############################################################################
 
-def graph_this_cell(pp,mouse_ID_and_date,cell_index,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells):
+def graph_this_cell(pp,mouse_ID_and_date,cell_index,trace_matrices,adjusted_odors,odor_sequence_in_letters,number_of_frames_in_trace_plot,frames_pre_odor_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells,frame_rate_after_down_sampling):
   
     number_of_subplots = len(adjusted_odors)            
 
@@ -320,21 +321,21 @@ def graph_this_cell(pp,mouse_ID_and_date,cell_index,trace_matrices,adjusted_odor
     plt.figtext(0.01,0.94,"len(m):%s"  %sequence_of_track_lengths,fontsize='xx-small', color='red', ha ='left')
 
     plt.figtext((frames_pre_odor_onset*1.00/number_of_frames_in_trace_plot),0.905,"Odor",fontsize='xx-small', color='blue', ha ='left')
-    plt.xlabel('Frame number', fontsize='x-small')
+    plt.xlabel('Time(s)', fontsize='x-small')
     
     if(number_of_subplots > 1):
         current_subplot = -1
         for ax in axs:
             current_subplot += 1
-            ax = generate_subplot(ax,current_subplot,trace_matrices,number_of_frames_in_trace_plot,frames_pre_odor_onset,adjusted_odors,odor_sequence_in_letters)
+            ax = generate_subplot(ax,current_subplot,trace_matrices,number_of_frames_in_trace_plot,frames_pre_odor_onset,adjusted_odors,odor_sequence_in_letters,frame_rate_after_down_sampling)
     elif(number_of_subplots == 1):
-        ax = generate_subplot(axs,0,trace_matrices,number_of_frames_in_trace_plot,frames_pre_odor_onset,adjusted_odors,odor_sequence_in_letters)
+        ax = generate_subplot(axs,0,trace_matrices,number_of_frames_in_trace_plot,frames_pre_odor_onset,adjusted_odors,odor_sequence_in_letters,frame_rate_after_down_sampling)
 
 #    plt.show()
     pp.savefig()
     plt.close(fig)
 
-def generate_subplot(ax,current_subplot,trace_matrices,number_of_frames_in_trace_plot,frames_pre_odor_onset,adjusted_odors,odor_sequence_in_letters):
+def generate_subplot(ax,current_subplot,trace_matrices,number_of_frames_in_trace_plot,frames_pre_odor_onset,adjusted_odors,odor_sequence_in_letters,frame_rate_after_down_sampling):
 
     NUM_COLORS = len(trace_matrices[current_subplot])
     cm = plt.get_cmap('jet')
@@ -354,9 +355,23 @@ def generate_subplot(ax,current_subplot,trace_matrices,number_of_frames_in_trace
     ax.set_ylabel('env%d -  %s%d'%(this_env+1,this_odor,this_odor_index),rotation='horizontal',horizontalalignment='right',color='red',fontsize='x-small')
     
     ax.tick_params(axis='y', which='major', labelsize=4) #for small yaxis labels
-
+    ax.tick_params(axis='x', which='major', labelsize=8) #for small xaxis labels
+    
     [i.set_linewidth(0.1) for i in ax.spines.itervalues()] #for thin border lines
     ax.set_xlim(0,number_of_frames_in_trace_plot)
+
+    #this is to generate x-axis label with seconds instead of frame number
+    x1 = number_of_frames_in_trace_plot / frame_rate_after_down_sampling # lets say, we want a time label on the x-axis for every 1 sec (5 frames)
+    x0 = frames_pre_odor_onset / frame_rate_after_down_sampling
+    x2 = [0,1] # there will be at least two labels on the x-axis, lets see if there will be more
+    if(x1 > x0):
+        x2 = [0-x0,1-x0]
+        for x_label in range(2,x1+1):
+            x2.append(x_label - x0)
+    ax.xaxis.tick_bottom()
+    xaxis_start, xaxis_end = ax.get_xlim()
+    ax.xaxis.set_ticks(numpy.arange(xaxis_start, xaxis_end+frame_rate_after_down_sampling, frame_rate_after_down_sampling))
+    plt.setp(ax,xticklabels=x2,visible=True)
 
     #for efficiently rasterizing the plot
     insert(ax)

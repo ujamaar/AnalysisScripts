@@ -2,6 +2,7 @@ import numpy # needed for various math tasks
 import os # needed to find files
 import re # needed to arrange filenames alphabetically
 
+#set number_of_shuffles = 0 if you only need to calculate mutual information, without doing any shuffle test
 
 def main():
 
