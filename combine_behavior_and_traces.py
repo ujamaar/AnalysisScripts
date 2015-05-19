@@ -204,8 +204,6 @@ def extract_details_per_frame (traces_file, valid_cells_file, raw_behavior_file,
         behavior_downsampled[frame,:] = behavior[frame*frame_ID_adjustment_factor,:]
 
 
-
-
 ###############################################################################
 
 
@@ -238,21 +236,6 @@ def extract_details_per_frame (traces_file, valid_cells_file, raw_behavior_file,
             cell_index += 1
 
 
-
-
-#    traces_by_frame_for_valid_cells = numpy.empty((number_of_valid_cells,number_of_frames),dtype='float')    
-#
-#    cell_index = 0
-#    for putative_cell in xrange(number_of_all_cells):
-#        if(valid_cells[putative_cell] >= 1):
-#            for frame in xrange(number_of_frames_after_downsampling):
-#                if(frame*frame_ID_adjustment_factor < number_of_frames):
-#                    traces_by_frame_for_valid_cells[cell_index][frame*frame_ID_adjustment_factor] = traces_raw_matrix[putative_cell][frame]
-#            if(cell_index < number_of_valid_cells):
-#                cell_index += 1
-
-
-
 ###############################################################################    
 
     # run this only if there are missing frames
@@ -264,7 +247,6 @@ def extract_details_per_frame (traces_file, valid_cells_file, raw_behavior_file,
         dropped_frames = numpy.loadtxt(dropped_frames_file, dtype='int', comments='#', delimiter=',')
         print "Number of dropped frames: %d"%dropped_frames.size
 ###############################################################################
-
 
 
     print 'Now we will save all this information in one csv file:'
@@ -295,40 +277,6 @@ def extract_details_per_frame (traces_file, valid_cells_file, raw_behavior_file,
     save_file_name = output_file_name + '_combined_behavior_and_traces.csv'
     #print save_file_name
     numpy.savetxt(save_file_name, traces_adjusted_for_missing_frames, fmt='%1.5f', delimiter=',', newline='\n') 
-###############################################################################
-
-
-
-
-
-#    print 'Now we will save all this information in one csv file:'
-#    traces_adjusted_for_missing_frames = numpy.empty((number_of_frames,behavior.shape[1] + number_of_valid_cells),dtype='float')
-#
-#    adjust_for_missing_frames = 0
-#    
-#    for frame in xrange(number_of_frames):
-#        if(frame+1 in dropped_frames):
-#            adjust_for_missing_frames = adjust_for_missing_frames + 1
-#            for cell in xrange(traces_adjusted_for_missing_frames.shape[1]):
-#                if (cell < behavior.shape[1]):
-#                    traces_adjusted_for_missing_frames[frame][cell] = behavior[frame][cell]
-#                else:
-#                    traces_adjusted_for_missing_frames[frame][cell] = 0 # use numpy.nan to be more exact, b/c the frame is missing
-#        #business is as usual if frames are not missing:
-#        else:
-#            for cell in range(0,traces_adjusted_for_missing_frames.shape[1]):
-#                if (cell < behavior.shape[1]):
-#                    traces_adjusted_for_missing_frames[frame][cell] = behavior[frame][cell]
-#                else:
-#                    traces_adjusted_for_missing_frames[frame][cell] = traces_by_frame_for_valid_cells[cell-behavior.shape[1]][frame - adjust_for_missing_frames]   
-#    
-#    print 'The saved array size is:'
-#    print traces_adjusted_for_missing_frames.shape
-#    #now save the array as a csv file in the same location as the input files
-#    save_file_name = output_file_name + '_combined_behavior_and_traces.csv'
-#    print save_file_name
-#    numpy.savetxt(save_file_name, traces_adjusted_for_missing_frames, fmt='%1.5f', delimiter=',', newline='\n') 
-################################################################################
 ###############################################################################
 
 main()
