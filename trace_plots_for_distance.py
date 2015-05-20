@@ -11,11 +11,11 @@ from matplotlib.artist import allow_rasterization
 def main():
     # specify the various parameters as needed:
 
-    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    #output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
 
-    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19/wfnjC19_2015_02_25'
-    #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
+    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19/'
+    output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
 
@@ -305,7 +305,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,output_directory_
            
         #now for each cell, generate matrices of traces for each odor to be plotted, then plot these matrices in a single figure
         #total_number_of_cells
-        for cell in xrange(2):
+        for cell in xrange(total_number_of_cells):
             print 'Plotting cell# %  d of %d'%(cell,total_number_of_cells)  
             trace_matrices = [list(numpy.zeros((laps_with_this_adjusted_odor[odor]*2,max_distance_frames),dtype='float')) for odor in xrange(len(adjusted_odors))]
 
@@ -380,12 +380,15 @@ def generate_subplot(ax,current_subplot,trace_matrices,adjusted_odors,odor_seque
     #to mark the frame for odor onset with a blue verticle line
     ax.axvline(x=odor_start_and_end_points[(adjusted_odors[current_subplot]-1)*2  ], linewidth=0.2, color='b')
     ax.axvline(x=odor_start_and_end_points[(adjusted_odors[current_subplot]-1)*2+1], linewidth=0.2, color='b')
-
     ax.axvline(x=odor_start_and_end_points[(adjusted_odors[current_subplot]-1)*2+2], linewidth=0.2, color='g')
     ax.axvline(x=odor_start_and_end_points[(adjusted_odors[current_subplot]-1)*2+3], linewidth=0.2, color='g')
-                
+    ax.axvline(x=odor_start_and_end_points[(adjusted_odors[current_subplot]-1)*2+4], linewidth=0.2, color='r')
+    ax.axvline(x=odor_start_and_end_points[(adjusted_odors[current_subplot]-1)*2+5], linewidth=0.2, color='r')                
+    ax.axvline(x=odor_start_and_end_points[(adjusted_odors[current_subplot]-1)*2+6], linewidth=0.2, color='m')
+    ax.axvline(x=odor_start_and_end_points[(adjusted_odors[current_subplot]-1)*2+7], linewidth=0.2, color='m')
+                                                    
     this_env = (adjusted_odors[current_subplot]-1)/4
-    this_odor = odor_sequence_in_letters[adjusted_odors[current_subplot]-1] + odor_sequence_in_letters[adjusted_odors[current_subplot]]
+    this_odor = odor_sequence_in_letters[adjusted_odors[current_subplot]-1] + odor_sequence_in_letters[adjusted_odors[current_subplot]] + odor_sequence_in_letters[adjusted_odors[current_subplot]+1] + odor_sequence_in_letters[adjusted_odors[current_subplot]+2]
     ax.set_ylabel('env%d -  %s'%(this_env+1,this_odor),rotation='horizontal',horizontalalignment='right',color='red',fontsize='x-small')
     
     ax.tick_params(axis='y', which='major', labelsize=4) #for small yaxis labels

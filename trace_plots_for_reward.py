@@ -10,9 +10,9 @@ from matplotlib.artist import allow_rasterization
 
 def main():
     # specify the various parameters as needed:
-    frame_rate_after_down_sampling = 5
-    frames_pre_reward_onset = 50 #time in milliseconds
-    frames_post_reward_onset = 50 #time in milliseconds
+    frame_rate_after_down_sampling = 5 #x frames per second
+    frames_pre_reward_onset = 25
+    frames_post_reward_onset = 25 
 
     data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
     output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
