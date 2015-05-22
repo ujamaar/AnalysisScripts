@@ -12,8 +12,13 @@ def main():
     print 'Frame adjustment factor for downsampled videos is: %d'%frame_ID_adjustment_factor
 
     #<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><#
+    
+    ################# sample file paths for windows  ##################
+    data_files_directory_path = 'C:/Users/axel/Desktop/data_analysis/input_files'
+    #data_files_directory_path = '//losonczy-server/walter/Virtual_Odor/imaging_data/'
 
-    data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19'
+    ################# sample file paths for mac  ##################    
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19'
 #    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
     
     replace_previous_versions_of_output_files = False

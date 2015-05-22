@@ -11,17 +11,19 @@ from matplotlib.artist import allow_rasterization
 def main():
     # specify the various parameters as needed:
 
-    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
-
-    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23/'
-    #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
-
-    #data_files_directory_path = 'C:/Users/axel/Desktop/data_analysis/input_files'
-    #output_directory_path = 'C:/Users/axel/Desktop/data_analysis/output_files'
+    ################# sample file paths for windows  ##################
+    data_files_directory_path = 'C:/Users/axel/Desktop/data_analysis/input_files'
+    output_directory_path = 'C:/Users/axel/Desktop/data_analysis/output_files'
 
     #data_files_directory_path = '//losonczy-server/walter/Virtual_Odor/imaging_data/'
     #output_directory_path = '//losonczy-server/walter/Virtual_Odor/analysis/'
+
+    ################# sample file paths for mac  ##################
+    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    #output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23/'
+    #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
 
@@ -352,13 +354,13 @@ def graph_this_cell(pp,mouse_ID_and_date,cell_index,trace_matrices,adjusted_odor
 
     fig,axs = plt.subplots(number_of_subplots, sharex=True, sharey=True)   
     fig.subplots_adjust(hspace=0.15)
-    fig.suptitle('%s   Odor trace plots for cell#%d / %d' %(mouse_ID_and_date,cell_index,total_number_of_cells))
+    fig.suptitle('%s   Distance trace plots for cell#%d / %d' %(mouse_ID_and_date,cell_index,total_number_of_cells))
     plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
     plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments ,fontsize='xx-small', color='red', ha ='left')
     plt.figtext(0.01,0.96,"laps    :%s"%sequence_of_lap_counts   ,fontsize='xx-small', color='red', ha ='left')
     plt.figtext(0.01,0.94,"len(m):%s"  %sequence_of_track_lengths,fontsize='xx-small', color='red', ha ='left')
 
-    plt.xlabel('Distance(mm)', fontsize='x-small')
+    plt.xlabel('Distance(m)', fontsize='x-small')
     
     if(number_of_subplots > 1):
         current_subplot = -1

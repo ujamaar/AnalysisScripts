@@ -16,10 +16,18 @@ def main():
     frames_pre_reward_onset = 25
     frames_post_reward_onset = 25     
 
-    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+    ################# sample file paths for windows  ##################
+    data_files_directory_path = 'C:/Users/axel/Desktop/data_analysis/input_files'
+    output_directory_path = 'C:/Users/axel/Desktop/data_analysis/output_files'
 
-    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19/wfnjC19_2015_02_25'
+    #data_files_directory_path = '//losonczy-server/walter/Virtual_Odor/imaging_data/'
+    #output_directory_path = '//losonczy-server/walter/Virtual_Odor/analysis/'
+
+    ################# sample file paths for mac  ##################
+    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    #output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23/'
     #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
@@ -41,9 +49,9 @@ def main():
                             mouse_ID = behavior_file[0:i]
                             mouse_ID_and_date = behavior_file[0:i+11]
                             break
-                    for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path + '/' + mouse_ID + '/odor_and_reward_trace_plots'):                    
+                    for plot_dirpath, plot_dirnames, plot_files in os.walk(output_directory_path + '/' + mouse_ID + '/odor_reward_and_distance_trace_plots'):                    
                         for plot_file in plot_files:
-                            if plot_file.endswith(mouse_ID_and_date + '_odor_and_reward_trace_plots.pdf'):  
+                            if plot_file.endswith(mouse_ID_and_date + '_odor_reward_and_distance_trace_plots.pdf'):  
                                 behavior_file_has_already_been_analyzed = True
                                 print '----------------------------------------------------------------'
                                 print 'This behavior file has already been plotted: ' + behavior_file
@@ -284,12 +292,12 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
         print 'Mouse ID is: %s'%mouse_ID_and_date
     
         #create an output folder, if it is not already there 
-        pdf_output_directory_path = output_directory_path + '/' + mouse_ID  + '/odor_and_reward_trace_plots'
+        pdf_output_directory_path = output_directory_path + '/' + mouse_ID  + '/odor_reward_and_distance_trace_plots'
         if pdf_output_directory_path:
             if not os.path.isdir(pdf_output_directory_path):
                 os.makedirs(pdf_output_directory_path)
     
-        pdf_filename = pdf_output_directory_path + '/' + mouse_ID_and_date + '_odor_and_reward_trace_plots.pdf'
+        pdf_filename = pdf_output_directory_path + '/' + mouse_ID_and_date + '_odor_reward_and_distance_trace_plots.pdf'
         pp = PdfPages(pdf_filename) 
     
         ###############################################################################
@@ -393,7 +401,7 @@ def graph_this_cell(pp,mouse_ID_and_date,cell_index,odor_trace_matrices,reward_t
 
     fig,axs = plt.subplots(number_of_subplots, sharex=True, sharey=True)   
     fig.subplots_adjust(hspace=0.15)
-    fig.suptitle('%s   Odor and reward trace plots for cell#%d / %d' %(mouse_ID_and_date,cell_index,total_number_of_cells))
+    fig.suptitle('%s   Odor, reward and distance trace plots for cell#%d / %d' %(mouse_ID_and_date,cell_index,total_number_of_cells))
     plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
     plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments ,fontsize='xx-small', color='red', ha ='left')
     plt.figtext(0.01,0.96,"laps    :%s"%sequence_of_lap_counts   ,fontsize='xx-small', color='red', ha ='left')

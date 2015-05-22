@@ -9,7 +9,8 @@ from scipy import ndimage # needed to apply gaussian filter
 
 def main():
     #for PC, the format is something like: directory_path ='C:/Users/axel/Desktop/test_data'
-    directory_path ='/Users/njoshi/Desktop/events_test'
+    directory_path ='C:/Users/axel/Desktop/data_analysis/input_files'
+    
     distance_bin_size = 50 #distance bin in mm
     speed_threshold = 50 #minimum speed in mm/s for selecting events
     gaussian_filter_sigma = 2.00

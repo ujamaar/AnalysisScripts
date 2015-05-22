@@ -14,10 +14,18 @@ def main():
     frames_pre_odor_onset = 25
     frames_post_odor_onset = 25    
 
-    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+    ################# sample file paths for windows  ##################
+    data_files_directory_path = 'C:/Users/axel/Desktop/data_analysis/input_files'
+    output_directory_path = 'C:/Users/axel/Desktop/data_analysis/output_files'
 
-    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19/wfnjC19_2015_02_25'
+    #data_files_directory_path = '//losonczy-server/walter/Virtual_Odor/imaging_data/'
+    #output_directory_path = '//losonczy-server/walter/Virtual_Odor/analysis/'
+
+    ################# sample file paths for mac  ##################
+    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    #output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23/'
     #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
@@ -371,7 +379,7 @@ def graph_this_cell(pp,mouse_ID_and_date,cell_index,odor_trace_matrices,distance
 
     fig,axs = plt.subplots(number_of_subplots, sharex=True, sharey=True)   
     fig.subplots_adjust(hspace=0.15)
-    fig.suptitle('%s   Odor and reward trace plots for cell#%d / %d' %(mouse_ID_and_date,cell_index,total_number_of_cells))
+    fig.suptitle('%s   Odor and distance trace plots for cell#%d / %d' %(mouse_ID_and_date,cell_index,total_number_of_cells))
     plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
     plt.figtext(0.01,0.98,"envs   :%s" %sequence_of_environments ,fontsize='xx-small', color='red', ha ='left')
     plt.figtext(0.01,0.96,"laps    :%s"%sequence_of_lap_counts   ,fontsize='xx-small', color='red', ha ='left')

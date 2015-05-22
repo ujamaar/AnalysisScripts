@@ -14,10 +14,18 @@ def main():
     frames_pre_reward_onset = 25
     frames_post_reward_onset = 25 
 
-    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+    ################# sample file paths for windows  ##################
+    data_files_directory_path = 'C:/Users/axel/Desktop/data_analysis/input_files'
+    output_directory_path = 'C:/Users/axel/Desktop/data_analysis/output_files'
 
-    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19'
+    #data_files_directory_path = '//losonczy-server/walter/Virtual_Odor/imaging_data/'
+    #output_directory_path = '//losonczy-server/walter/Virtual_Odor/analysis/'
+
+    ################# sample file paths for mac  ##################
+    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    #output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23/'
     #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  

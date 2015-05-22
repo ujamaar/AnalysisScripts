@@ -16,10 +16,18 @@ def main():
     frames_pre_reward_onset = 25
     frames_post_reward_onset = 25     
 
-    data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
-    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+    ################# sample file paths for windows  ##################
+    data_files_directory_path = 'C:/Users/axel/Desktop/data_analysis/input_files'
+    output_directory_path = 'C:/Users/axel/Desktop/data_analysis/output_files'
 
-    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC19/wfnjC19_2015_02_25'
+    #data_files_directory_path = '//losonczy-server/walter/Virtual_Odor/imaging_data/'
+    #output_directory_path = '//losonczy-server/walter/Virtual_Odor/analysis/'
+
+    ################# sample file paths for mac  ##################
+    #data_files_directory_path ='/Users/njoshi/Desktop/data_analysis/input_files'
+    #output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files'
+
+    #data_files_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/wfnjC23/'
     #output_directory_path = '/Volumes/walter/Virtual_Odor/analysis'
 
     replace_previous_versions_of_plots = False  
@@ -355,8 +363,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
 
 def graph_this_cell(pp,mouse_ID_and_date,cell_index,odor_trace_matrices,reward_trace_matrices,adjusted_odors,reduced_adjusted_odor,which_adjusted_odors_to_keep,odor_sequence_in_letters,number_of_frames_in_odor_trace_plot,number_of_frames_in_reward_trace_plot,frames_pre_odor_onset,frames_pre_reward_onset,sequence_of_environments,sequence_of_lap_counts,sequence_of_track_lengths,total_number_of_cells,frame_rate_after_down_sampling):
   
-    number_of_subplots = len(adjusted_odors)
-    print number_of_subplots     
+    number_of_subplots = len(adjusted_odors)   
 
     fig,axs = plt.subplots(number_of_subplots, sharex=True, sharey=True)   
     fig.subplots_adjust(hspace=0.15)

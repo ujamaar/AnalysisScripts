@@ -6,9 +6,14 @@ import re # needed to arrange filenames alphabetically
 
 def main():
 
-#    input_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data/'
-    input_directory_path  = '/Users/njoshi/Desktop/data_analysis/input_files'
-#    output_directory_path = '/Users/njoshi/Desktop/data_analysis/output_files/'
+    ################# sample file paths for windows  ##################
+    input_directory_path = 'C:/Users/axel/Desktop/data_analysis/input_files'
+    #input_directory_path = '//losonczy-server/walter/Virtual_Odor/imaging_data/'
+
+    ################# sample file paths for mac  ##################    
+    #input_directory_path ='/Volumes/walter/Virtual_Odor/imaging_data'
+    #input_directory_path  = '/Users/njoshi/Desktop/data_analysis/input_files'
+
     number_of_shuffles = 10000
 
 
