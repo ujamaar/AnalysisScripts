@@ -275,7 +275,7 @@ def read_data_and_generate_plots(behavior_and_traces_file_path,frames_pre_odor_o
 #        figs = []
         #now for each cell, generate matrices of traces for each odor to be plotted, then plot these matrices in a single figure
         #total_number_of_cells
-        for cell in xrange(2):
+        for cell in xrange(total_number_of_cells):
             print 'Plotting cell# %  d of %d'%(cell,total_number_of_cells)  
             trace_matrices = [list(numpy.zeros((laps_with_this_adjusted_odor[odor],number_of_frames_in_trace_plot),dtype='float')) for odor in xrange(len(adjusted_odors))]
     
